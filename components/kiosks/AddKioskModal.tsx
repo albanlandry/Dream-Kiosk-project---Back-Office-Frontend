@@ -49,6 +49,53 @@ export function AddKioskModal({ onClose, onSuccess }: AddKioskModalProps) {
     loadProjects();
   }, [showError]);
 
+  // IP 주소 마스킹 함수
+  const formatIPAddress = (value: string): string => {
+    // 숫자와 점만 허용
+    const cleaned = value.replace(/[^\d.]/g, '');
+    
+    // 연속된 점 제거
+    const noDoubleDots = cleaned.replace(/\.{2,}/g, '.');
+    
+    // 점으로 분리
+    const parts = noDoubleDots.split('.');
+    
+    // 각 부분을 처리
+    const formattedParts = parts.map((part, index) => {
+      // 마지막 부분이 아니고 빈 문자열이면 점 추가하지 않음
+      if (index < parts.length - 1 && part === '') {
+        return '';
+      }
+      
+      // 숫자만 추출
+      const numbers = part.replace(/\D/g, '');
+      
+      // 3자리 초과 시 제한
+      if (numbers.length > 3) {
+        return numbers.slice(0, 3);
+      }
+      
+      // 255 초과 시 제한
+      const num = parseInt(numbers, 10);
+      if (!isNaN(num) && num > 255) {
+        return '255';
+      }
+      
+      return numbers;
+    });
+    
+    // 최대 4개 옥텟으로 제한
+    const limitedParts = formattedParts.slice(0, 4);
+    
+    // 점으로 조인
+    return limitedParts.join('.');
+  };
+
+  const handleIPAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatIPAddress(e.target.value);
+    setFormData({ ...formData, ipAddress: formatted });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -126,11 +173,14 @@ export function AddKioskModal({ onClose, onSuccess }: AddKioskModalProps) {
                 IP 주소 *
               </label>
               <Input
+                type="text"
+                inputMode="numeric"
                 value={formData.ipAddress}
-                onChange={(e) => setFormData({ ...formData, ipAddress: e.target.value })}
+                onChange={handleIPAddressChange}
                 placeholder="예: 192.168.4.113"
                 required
                 className="w-full"
+                maxLength={15} // 최대 길이: 255.255.255.255
               />
             </div>
 

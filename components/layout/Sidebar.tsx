@@ -7,7 +7,16 @@ import { useAuthStore } from '@/lib/store/authStore';
 
 const navigation = [
   { name: '대시보드', href: '/dashboard', icon: 'fas fa-tachometer-alt' },
-  { name: '콘텐츠 관리', href: '/dashboard/content', icon: 'fas fa-video' },
+  {
+    name: '콘텐츠 관리',
+    href: '/dashboard/content',
+    icon: 'fas fa-video',
+    submenu: [
+      { name: '이미지 관리', href: '/dashboard/content/images', icon: 'fas fa-image' },
+      { name: '비디오 관리', href: '/dashboard/content/videos', icon: 'fas fa-video' },
+      { name: '리소스 관리', href: '/dashboard/content/resources', icon: 'fas fa-folder' },
+    ],
+  },
   { name: '프로포즈 관리', href: '/dashboard/propose', icon: 'fas fa-heart' },
   { name: '결제 관리', href: '/dashboard/payments', icon: 'fas fa-credit-card' },
   { name: '사용자 관리', href: '/dashboard/users', icon: 'fas fa-users' },
@@ -39,6 +48,9 @@ export function Sidebar() {
           {navigation.map((item) => {
             const isActive =
               pathname === item.href || pathname?.startsWith(item.href + '/');
+            const hasSubmenu = item.submenu && item.submenu.length > 0;
+            const isSubmenuOpen = hasSubmenu && isActive;
+
             return (
               <li key={item.name} className={cn(isActive && 'active')}>
                 <Link
@@ -51,8 +63,39 @@ export function Sidebar() {
                   )}
                 >
                   <i className={cn('w-5 text-center', item.icon)}></i>
-                  <span>{item.name}</span>
+                  <span className="flex-1">{item.name}</span>
+                  {hasSubmenu && (
+                    <i
+                      className={cn(
+                        'fas fa-chevron-down text-xs transition-transform',
+                        isSubmenuOpen && 'transform rotate-180'
+                      )}
+                    ></i>
+                  )}
                 </Link>
+                {hasSubmenu && isSubmenuOpen && (
+                  <ul className="bg-slate-800/50 border-l-2 border-blue-500/30">
+                    {item.submenu.map((subItem) => {
+                      const isSubActive = pathname === subItem.href || pathname?.startsWith(subItem.href + '/');
+                      return (
+                        <li key={subItem.name}>
+                          <Link
+                            href={subItem.href}
+                            className={cn(
+                              'flex items-center gap-3 px-5 py-3 pl-12 text-gray-300 text-sm transition-all',
+                              isSubActive
+                                ? 'bg-blue-500/30 text-blue-300'
+                                : 'hover:bg-white/5 hover:text-white'
+                            )}
+                          >
+                            <i className={cn('w-4 text-center', subItem.icon)}></i>
+                            <span>{subItem.name}</span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </li>
             );
           })}
