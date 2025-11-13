@@ -138,11 +138,20 @@ export default function ResourcesManagementPage() {
     e.preventDefault();
 
     try {
+      // 빈 배열이면 undefined로 전송하여 선택사항임을 명시
+      const submitData = {
+        name: formData.name,
+        description: formData.description || undefined,
+        imageIds: formData.imageIds.length > 0 ? formData.imageIds : undefined,
+        videoIds: formData.videoIds.length > 0 ? formData.videoIds : undefined,
+        kioskIds: formData.kioskIds.length > 0 ? formData.kioskIds : undefined,
+      };
+
       if (editingResource) {
-        await apiClient.patch(`/resources/${editingResource.id}`, formData);
+        await apiClient.patch(`/resources/${editingResource.id}`, submitData);
         showSuccess('리소스가 수정되었습니다.');
       } else {
-        await apiClient.post('/resources', formData);
+        await apiClient.post('/resources', submitData);
         showSuccess('리소스가 생성되었습니다.');
       }
       handleCloseModal();
@@ -188,7 +197,7 @@ export default function ResourcesManagementPage() {
       />
       <Header
         title="리소스 관리"
-        description="이미지와 비디오를 묶어 키오스크에 할당"
+        description="이미지와 비디오를 묶어 리소스 팩으로 관리하고 키오스크에 할당"
         action={{
           label: '리소스 생성',
           icon: 'fas fa-plus',
@@ -355,34 +364,49 @@ export default function ResourcesManagementPage() {
                 </div>
               </div>
 
-              {/* 키오스크 선택 */}
+              {/* 키오스크 선택 (선택사항) */}
               <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-3">
-                  키오스크 선택
+                <label className="block text-sm font-semibold text-gray-800 mb-2">
+                  키오스크 할당 <span className="text-gray-500 font-normal text-xs">(선택사항)</span>
                 </label>
-                <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
-                  {kiosks.map((kiosk) => (
-                    <label
-                      key={kiosk.id}
-                      className={cn(
-                        'flex items-center gap-2 p-2 rounded cursor-pointer border-2 transition-all',
-                        formData.kioskIds.includes(kiosk.id)
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      )}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={formData.kioskIds.includes(kiosk.id)}
-                        onChange={(e) =>
-                          toggleSelection('kiosk', kiosk.id, e.target.checked)
-                        }
-                        className="w-4 h-4"
-                      />
-                      <span className="text-sm text-gray-700 flex-1">{kiosk.name}</span>
-                    </label>
-                  ))}
-                </div>
+                <p className="text-xs text-gray-500 mb-3">
+                  리소스를 특정 키오스크에 할당할 수 있습니다. 할당하지 않으면 나중에 수정할 수 있습니다.
+                </p>
+                {kiosks.length === 0 ? (
+                  <div className="border border-gray-200 rounded-lg p-4 text-center text-sm text-gray-500">
+                    등록된 키오스크가 없습니다.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                    {kiosks.map((kiosk) => (
+                      <label
+                        key={kiosk.id}
+                        className={cn(
+                          'flex items-center gap-2 p-2 rounded cursor-pointer border-2 transition-all',
+                          formData.kioskIds.includes(kiosk.id)
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.kioskIds.includes(kiosk.id)}
+                          onChange={(e) =>
+                            toggleSelection('kiosk', kiosk.id, e.target.checked)
+                          }
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm text-gray-700 flex-1">{kiosk.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+                {formData.kioskIds.length > 0 && (
+                  <p className="text-xs text-gray-600 mt-2">
+                    <i className="fas fa-info-circle mr-1"></i>
+                    {formData.kioskIds.length}개의 키오스크에 할당됩니다.
+                  </p>
+                )}
               </div>
 
               <div className="flex justify-end gap-2 pt-4 border-t border-gray-200">
