@@ -20,6 +20,8 @@ export function AddProjectModal({ onClose, onSuccess }: AddProjectModalProps) {
     startDate: '',
     location: '',
     owner: '',
+    kioskCount: 1,
+    contentPCCount: 1,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showSuccess, showError } = useToastStore();
@@ -43,8 +45,8 @@ export function AddProjectModal({ onClose, onSuccess }: AddProjectModalProps) {
         description: response.data.description || '',
         status: response.data.status || 'active',
         startDate: response.data.startDate || formData.startDate,
-        kioskCount: response.data.kiosks?.length || 0,
-        contentPCCount: 0, // Will be updated from API
+        kioskCount: response.data.kiosks?.length || formData.kioskCount,
+        contentPCCount: formData.contentPCCount,
         totalContent: response.data.totalContent || 0,
         totalRevenue: response.data.totalRevenue || 0,
         owner: response.data.owner,
@@ -80,7 +82,7 @@ export function AddProjectModal({ onClose, onSuccess }: AddProjectModalProps) {
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="예: 강남점 프로젝트"
+                placeholder="예: 대전점 프로젝트"
                 required
                 className="w-full"
               />
@@ -141,6 +143,39 @@ export function AddProjectModal({ onClose, onSuccess }: AddProjectModalProps) {
                 required
                 className="w-full"
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 mb-2">
+                  키오스크 수 *
+                </label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={formData.kioskCount}
+                  onChange={(e) =>
+                    setFormData({ ...formData, kioskCount: parseInt(e.target.value) || 1 })
+                  }
+                  required
+                  className="w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 mb-2">
+                  Content PC 수 *
+                </label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={formData.contentPCCount}
+                  onChange={(e) =>
+                    setFormData({ ...formData, contentPCCount: parseInt(e.target.value) || 1 })
+                  }
+                  required
+                  className="w-full"
+                />
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-4 border-t border-gray-200">
