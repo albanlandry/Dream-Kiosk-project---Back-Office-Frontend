@@ -38,11 +38,32 @@ export default function VideosManagementPage() {
   const loadVideos = async () => {
     try {
       setIsLoading(true);
-      // Note: This endpoint may need to be created in the backend
       const response = await apiClient.get('/videos');
-      setVideos(response.data || []);
+      // HATEOAS 응답 구조 처리
+      const responseData = response.data?.data || response.data;
+      const videosArray = Array.isArray(responseData) ? responseData : [];
+      
+      // API 응답 형식을 프론트엔드 형식으로 변환
+      const formattedVideos = videosArray.map((video: any) => ({
+        id: video.video_id || video.id,
+        backgroundVideoId: video.backgroundVideoId,
+        userPicture: video.userPicture,
+        userName: video.userName,
+        userMessage: video.userMessage,
+        videoUrl: video.videoUrl || video.video_url,
+        thumbnailUrl: video.thumbnailUrl || video.thumbnail_url,
+        status: video.status,
+        priority: video.priority,
+        displayPeriodStart: video.displayPeriodStart || video.display_period_start,
+        displayPeriodEnd: video.displayPeriodEnd || video.display_period_end,
+        createdAt: video.createdAt || video.created_at,
+        updatedAt: video.updatedAt || video.updated_at,
+      }));
+      
+      setVideos(formattedVideos);
     } catch (error: any) {
       showError('비디오 목록을 불러오는데 실패했습니다.');
+      setVideos([]); // 에러 시 빈 배열로 설정
     } finally {
       setIsLoading(false);
     }

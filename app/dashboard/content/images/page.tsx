@@ -40,10 +40,32 @@ export default function ImagesManagementPage() {
   const loadImages = async () => {
     try {
       setIsLoading(true);
-      const response = await apiClient.get('/images?activeOnly=false');
-      setImages(response.data || []);
+      const response = await apiClient.get('/images?active_only=false');
+      // HATEOAS 응답 구조: { data: { images: [...], total_count: ... }, _links: {...} }
+      const responseData = response.data?.data || response.data;
+      const imagesArray = responseData?.images || responseData || [];
+      
+      // API 응답 형식을 프론트엔드 형식으로 변환
+      const formattedImages = imagesArray.map((img: any) => ({
+        id: img.image_id || img.id,
+        filename: img.filename,
+        originalName: img.filename || img.originalName,
+        mimeType: img.mime_type || img.mimeType,
+        size: img.size,
+        filePath: img.url || img.filePath,
+        thumbnailPath: img.thumbnail_url || img.thumbnailPath,
+        description: img.description,
+        width: img.width,
+        height: img.height,
+        isActive: img.is_active !== undefined ? img.is_active : img.isActive !== undefined ? img.isActive : true,
+        createdAt: img.created_at || img.createdAt,
+        updatedAt: img.updated_at || img.updatedAt,
+      }));
+      
+      setImages(formattedImages);
     } catch (error: any) {
       showError('이미지 목록을 불러오는데 실패했습니다.');
+      setImages([]); // 에러 시 빈 배열로 설정
     } finally {
       setIsLoading(false);
     }

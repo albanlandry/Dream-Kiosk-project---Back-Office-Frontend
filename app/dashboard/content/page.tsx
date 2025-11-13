@@ -22,17 +22,28 @@ export default function ContentManagementPage() {
   const loadStats = async () => {
     try {
       const [imagesRes, videosRes, resourcesRes] = await Promise.all([
-        apiClient.get('/images?activeOnly=false').catch(() => ({ data: [] })),
-        apiClient.get('/videos').catch(() => ({ data: [] })),
-        apiClient.get('/resources').catch(() => ({ data: [] })),
+        apiClient.get('/images?active_only=false').catch(() => ({ data: { data: { images: [] } } })),
+        apiClient.get('/videos').catch(() => ({ data: { data: [] } })),
+        apiClient.get('/resources').catch(() => ({ data: { data: [] } })),
       ]);
 
-      const images = imagesRes.data || [];
+      // HATEOAS 응답 구조 처리
+      const imagesData = imagesRes.data?.data || imagesRes.data;
+      const images = imagesData?.images || imagesData || [];
+      
+      const videosData = videosRes.data?.data || videosRes.data;
+      const videos = Array.isArray(videosData) ? videosData : [];
+      
+      const resourcesData = resourcesRes.data?.data || resourcesRes.data;
+      const resources = Array.isArray(resourcesData) ? resourcesData : [];
+
       setStats({
         totalImages: images.length,
-        activeImages: images.filter((img: any) => img.isActive).length,
-        totalVideos: (videosRes.data || []).length,
-        totalResources: (resourcesRes.data || []).length,
+        activeImages: images.filter((img: any) => 
+          (img.is_active !== undefined ? img.is_active : img.isActive !== undefined ? img.isActive : true)
+        ).length,
+        totalVideos: videos.length,
+        totalResources: resources.length,
       });
     } catch (error) {
       console.error('Failed to load stats:', error);

@@ -63,17 +63,44 @@ export default function ResourcesManagementPage() {
       setIsLoading(true);
       const [resourcesRes, imagesRes, videosRes, kiosksRes] = await Promise.all([
         apiClient.get('/resources'),
-        apiClient.get('/images?activeOnly=false'),
+        apiClient.get('/images?active_only=false'),
         apiClient.get('/videos'),
         apiClient.get('/kiosks'),
       ]);
 
-      setResources(resourcesRes.data || []);
-      setImages(imagesRes.data || []);
-      setVideos(videosRes.data || []);
-      setKiosks(kiosksRes.data || []);
+      // HATEOAS 응답 구조 처리
+      const resourcesData = resourcesRes.data?.data || resourcesRes.data;
+      const resourcesArray = Array.isArray(resourcesData) ? resourcesData : [];
+      setResources(resourcesArray);
+
+      const imagesData = imagesRes.data?.data || imagesRes.data;
+      const imagesArray = (imagesData?.images || imagesData || []).map((img: any) => ({
+        id: img.image_id || img.id,
+        originalName: img.filename || img.originalName,
+        thumbnailPath: img.thumbnail_url || img.thumbnailPath,
+      }));
+      setImages(imagesArray);
+
+      const videosData = videosRes.data?.data || videosRes.data;
+      const videosArray = (Array.isArray(videosData) ? videosData : []).map((vid: any) => ({
+        id: vid.video_id || vid.id,
+        userName: vid.userName,
+        thumbnailUrl: vid.thumbnailUrl || vid.thumbnail_url,
+      }));
+      setVideos(videosArray);
+
+      const kiosksData = kiosksRes.data?.data || kiosksRes.data;
+      const kiosksArray = (Array.isArray(kiosksData) ? kiosksData : []).map((kiosk: any) => ({
+        id: kiosk.id,
+        name: kiosk.name,
+      }));
+      setKiosks(kiosksArray);
     } catch (error: any) {
       showError('데이터를 불러오는데 실패했습니다.');
+      setResources([]);
+      setImages([]);
+      setVideos([]);
+      setKiosks([]);
     } finally {
       setIsLoading(false);
     }
