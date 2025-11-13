@@ -9,6 +9,8 @@ import { AddProjectModal } from '@/components/projects/AddProjectModal';
 import { ViewProjectModal } from '@/components/projects/ViewProjectModal';
 import { EditProjectModal } from '@/components/projects/EditProjectModal';
 import { Pagination } from '@/components/ui/pagination';
+import { useToastStore } from '@/lib/store/toastStore';
+import { LoadingModal } from '@/components/ui/loading-modal';
 
 export interface Project {
   id: string;
@@ -181,6 +183,9 @@ export default function ProjectManagementPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [viewingProject, setViewingProject] = useState<Project | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
+  const { showSuccess, showError, showWarning } = useToastStore();
 
   const totalProjects = projects.length;
   const activeProjects = projects.filter((p) => p.status === 'active').length;
@@ -207,39 +212,60 @@ export default function ProjectManagementPage() {
 
   const handlePause = (project: Project) => {
     if (confirm(`${project.name}을(를) 일시정지하시겠습니까?`)) {
-      setProjects(
-        projects.map((p) => (p.id === project.id ? { ...p, status: 'paused' as const } : p))
-      );
-      alert('프로젝트가 일시정지되었습니다.');
+      setLoadingMessage('프로젝트 일시정지 중...');
+      setIsLoading(true);
+      
+      // Simulate API call
+      setTimeout(() => {
+        setProjects(
+          projects.map((p) => (p.id === project.id ? { ...p, status: 'paused' as const } : p))
+        );
+        setIsLoading(false);
+        showSuccess(`${project.name}이(가) 일시정지되었습니다.`);
+      }, 1500);
     }
   };
 
   const handleResume = (project: Project) => {
     if (confirm(`${project.name}을(를) 재시작하시겠습니까?`)) {
-      setProjects(
-        projects.map((p) => (p.id === project.id ? { ...p, status: 'active' as const } : p))
-      );
-      alert('프로젝트가 재시작되었습니다.');
+      setLoadingMessage('프로젝트 재시작 중...');
+      setIsLoading(true);
+      
+      // Simulate API call
+      setTimeout(() => {
+        setProjects(
+          projects.map((p) => (p.id === project.id ? { ...p, status: 'active' as const } : p))
+        );
+        setIsLoading(false);
+        showSuccess(`${project.name}이(가) 재시작되었습니다.`);
+      }, 1500);
     }
   };
 
   const handleStop = (project: Project) => {
     if (confirm(`${project.name}을(를) 종료하시겠습니까?`)) {
-      setProjects(
-        projects.map((p) =>
-          p.id === project.id
-            ? { ...p, status: 'stopped' as const, endDate: new Date().toISOString().split('T')[0] }
-            : p
-        )
-      );
-      alert('프로젝트가 종료되었습니다.');
+      setLoadingMessage('프로젝트 종료 중...');
+      setIsLoading(true);
+      
+      // Simulate API call
+      setTimeout(() => {
+        setProjects(
+          projects.map((p) =>
+            p.id === project.id
+              ? { ...p, status: 'stopped' as const, endDate: new Date().toISOString().split('T')[0] }
+              : p
+          )
+        );
+        setIsLoading(false);
+        showSuccess(`${project.name}이(가) 종료되었습니다.`);
+      }, 1500);
     }
   };
 
   const handleDelete = (project: Project) => {
     if (confirm(`${project.name}을(를) 삭제하시겠습니까?`)) {
       setProjects(projects.filter((p) => p.id !== project.id));
-      alert('프로젝트가 삭제되었습니다.');
+      showSuccess(`${project.name}이(가) 삭제되었습니다.`);
     }
   };
 
@@ -343,6 +369,9 @@ export default function ProjectManagementPage() {
           }}
         />
       )}
+
+      {/* Loading Modal */}
+      <LoadingModal isOpen={isLoading} message={loadingMessage} />
     </>
   );
 }
