@@ -110,7 +110,7 @@ export default function ContentManagementPage() {
               key={item.id}
               className="bg-white rounded-xl p-6 shadow-sm grid grid-cols-[200px_1fr_auto] gap-6"
             >
-              <div className="w-50 h-30 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+              <div className="w-50 h-30 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center self-center">
                 <i className="fas fa-video text-4xl text-gray-400"></i>
               </div>
               <div className="flex-1">
