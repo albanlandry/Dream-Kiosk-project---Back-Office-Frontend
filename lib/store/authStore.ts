@@ -25,6 +25,10 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         Cookies.remove('auth-token');
         set({ token: null, admin: null, isAuthenticated: false });
+        // Redirect to login page after logout
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
       },
       setAdmin: (admin) => {
         set({ admin });

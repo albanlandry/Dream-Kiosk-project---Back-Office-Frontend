@@ -2,7 +2,6 @@
 
 import { Sidebar } from './Sidebar';
 import { MobileSidebar } from './MobileSidebar';
-import { Header } from './Header';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -10,12 +9,11 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-100">
+    <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col ml-0 lg:ml-[280px]">
         <MobileSidebar />
-        <Header />
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6">{children}</main>
+        <div className="flex-1">{children}</div>
       </div>
     </div>
   );

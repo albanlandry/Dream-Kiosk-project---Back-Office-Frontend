@@ -78,3 +78,27 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Admin Dashboard Styles */
+.admin-container {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f8f9fa;
+}
+
+.main-content {
+  flex: 1;
+  margin-left: 280px;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 1024px) {
+  .main-content {
+    margin-left: 0;
+  }
+}
+
+.border-b-3 {
+  border-bottom-width: 3px;
+}

@@ -40,59 +40,108 @@ export function LoginForm() {
       const response = await authApi.login(data.email, data.password);
       login(response.access_token, response.admin);
       router.push('/dashboard');
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || 'Invalid email or password');
+      const errorMessage =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : undefined;
+      setError(errorMessage || 'Invalid email or password');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle>Admin Login</CardTitle>
-        <CardDescription>Enter your credentials to access the backoffice</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {error && (
-            <div className="rounded-md bg-red-50 p-3 text-sm text-red-800">{error}</div>
-          )}
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium">
-              Email
-            </label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="admin@example.com"
-              {...register('email')}
-            />
-            {errors.email && (
-              <p className="text-sm text-red-600">{errors.email.message}</p>
+    <>
+      <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      />
+      <Card className="w-full shadow-xl border-0">
+        <CardHeader className="pb-6">
+          <CardTitle className="text-2xl font-bold text-gray-800 text-center">
+            관리자 로그인
+          </CardTitle>
+          <CardDescription className="text-center text-gray-600">
+            백오피스에 접근하려면 자격 증명을 입력하세요
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            {error && (
+              <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-800 flex items-center gap-2">
+                <i className="fas fa-exclamation-circle"></i>
+                <span>{error}</span>
+              </div>
             )}
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium">
-              Password
-            </label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              {...register('password')}
-            />
-            {errors.password && (
-              <p className="text-sm text-red-600">{errors.password.message}</p>
-            )}
-          </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? 'Logging in...' : 'Login'}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-semibold text-gray-800">
+                이메일
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <i className="fas fa-envelope text-gray-400"></i>
+                </div>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="admin@kiosk.com"
+                  className="pl-10 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  {...register('email')}
+                />
+              </div>
+              {errors.email && (
+                <p className="text-sm text-red-600 flex items-center gap-1">
+                  <i className="fas fa-exclamation-circle text-xs"></i>
+                  {errors.email.message}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="password" className="text-sm font-semibold text-gray-800">
+                비밀번호
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <i className="fas fa-lock text-gray-400"></i>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  className="pl-10 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  {...register('password')}
+                />
+              </div>
+              {errors.password && (
+                <p className="text-sm text-red-600 flex items-center gap-1">
+                  <i className="fas fa-exclamation-circle text-xs"></i>
+                  {errors.password.message}
+                </p>
+              )}
+            </div>
+            <Button
+              type="submit"
+              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-3 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <i className="fas fa-spinner fa-spin mr-2"></i>
+                  로그인 중...
+                </>
+              ) : (
+                <>
+                  <i className="fas fa-sign-in-alt mr-2"></i>
+                  로그인
+                </>
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </>
   );
 }
 
