@@ -4,6 +4,7 @@ import './globals.css';
 import { QueryProvider } from '@/components/providers/QueryProvider';
 import { ToastProvider } from '@/components/providers/ToastProvider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { LoadingOverlay } from '@/components/LoadingOverlay';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -27,6 +28,7 @@ export default function RootLayout({
           <QueryProvider>
             {children}
             <ToastProvider />
+            <LoadingOverlay />
           </QueryProvider>
         </ErrorBoundary>
       </body>
