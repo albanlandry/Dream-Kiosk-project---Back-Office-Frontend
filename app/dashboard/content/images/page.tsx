@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { apiClient } from '@/lib/api/client';
 import { useToastStore } from '@/lib/store/toastStore';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { UploadImageModal } from '@/components/content/UploadImageModal';
 import { cn } from '@/lib/utils/cn';
 
 interface Image {
@@ -29,7 +29,6 @@ export default function ImagesManagementPage() {
   const [images, setImages] = useState<Image[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const { showSuccess, showError } = useToastStore();
 
@@ -71,47 +70,6 @@ export default function ImagesManagementPage() {
     }
   };
 
-  const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const fileInput = e.currentTarget.querySelector('input[type="file"]') as HTMLInputElement;
-    const file = fileInput?.files?.[0];
-    const description = formData.get('description') as string;
-
-    if (!file) {
-      showError('파일을 선택해주세요.');
-      return;
-    }
-
-    setUploading(true);
-
-    try {
-      // Convert file to base64
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64String = reader.result as string;
-
-        try {
-          await apiClient.post('/images', {
-            image: base64String,
-            description: description || undefined,
-          });
-
-          showSuccess('이미지가 성공적으로 업로드되었습니다.');
-          setShowUploadModal(false);
-          loadImages();
-        } catch (error: any) {
-          showError(error.response?.data?.message || '이미지 업로드에 실패했습니다.');
-        } finally {
-          setUploading(false);
-        }
-      };
-      reader.readAsDataURL(file);
-    } catch (error: any) {
-      showError('파일 읽기에 실패했습니다.');
-      setUploading(false);
-    }
-  };
 
   const handleDelete = async (id: string) => {
     if (!confirm('이 이미지를 삭제하시겠습니까?')) {
@@ -248,52 +206,14 @@ export default function ImagesManagementPage() {
         )}
       </div>
 
-      {/* 업로드 모달 */}
-      {showUploadModal && (
-        <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
-          <DialogContent className="max-w-md bg-white">
-            <DialogHeader>
-              <DialogTitle>이미지 업로드</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleUpload} className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-2">
-                  이미지 파일 *
-                </label>
-                <Input type="file" accept="image/*" required />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-2">
-                  설명
-                </label>
-                <textarea
-                  name="description"
-                  rows={3}
-                  className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
-                  placeholder="이미지에 대한 설명을 입력하세요."
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-4 border-t border-gray-200">
-                <Button
-                  type="button"
-                  onClick={() => setShowUploadModal(false)}
-                  disabled={uploading}
-                  className="bg-gray-500 hover:bg-gray-600 text-white"
-                >
-                  취소
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={uploading}
-                  className="bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white"
-                >
-                  {uploading ? '업로드 중...' : '업로드'}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      )}
+      {/* 이미지 업로드 모달 */}
+      <UploadImageModal
+        open={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onSuccess={() => {
+          loadImages();
+        }}
+      />
     </>
   );
 }

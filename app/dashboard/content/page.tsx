@@ -3,6 +3,8 @@
 import { Header } from '@/components/layout/Header';
 import { FilterSection, FilterGroup, SearchGroup } from '@/components/ui/filter-section';
 import { Button } from '@/components/ui/button';
+import { UploadContentModal } from '@/components/content/UploadContentModal';
+import { CreateContentModal } from '@/components/content/CreateContentModal';
 import { useState } from 'react';
 
 export default function ContentManagementPage() {
@@ -10,6 +12,8 @@ export default function ContentManagementPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const contentItems = [
     {
@@ -56,10 +60,21 @@ export default function ContentManagementPage() {
         action={{
           label: '새 콘텐츠 생성',
           icon: 'fas fa-plus',
-          onClick: () => console.log('Create new content'),
+          onClick: () => setShowCreateModal(true),
         }}
       />
       <div className="p-8 min-h-screen">
+        {/* 액션 버튼 영역 */}
+        <div className="flex justify-end gap-3 mb-6">
+          <Button
+            onClick={() => setShowUploadModal(true)}
+            className="bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white"
+          >
+            <i className="fas fa-upload mr-2"></i>
+            리소스 업로드
+          </Button>
+        </div>
+
         {/* 필터 및 검색 */}
         <FilterSection>
           <FilterGroup label="템플릿:">
@@ -176,6 +191,26 @@ export default function ContentManagementPage() {
           </Button>
         </div>
       </div>
+
+      {/* 콘텐츠 생성 모달 */}
+      <CreateContentModal
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={() => {
+          // 콘텐츠 목록 새로고침 (필요시 구현)
+          console.log('Content created successfully');
+        }}
+      />
+
+      {/* 리소스 업로드 모달 (이미지/비디오 파일 업로드) */}
+      <UploadContentModal
+        open={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onSuccess={() => {
+          // 콘텐츠 목록 새로고침 (필요시 구현)
+          console.log('Content uploaded successfully');
+        }}
+      />
     </>
   );
 }

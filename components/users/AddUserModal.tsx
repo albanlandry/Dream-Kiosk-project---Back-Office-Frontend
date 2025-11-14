@@ -51,7 +51,7 @@ export function AddUserModal({ onClose, onSuccess }: AddUserModalProps) {
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
       />
       <Dialog open={true} onOpenChange={onClose}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white">
+        <DialogContent className="w-sm max-h-[90vh] overflow-y-auto bg-white">
           <DialogHeader>
             <DialogTitle>새 사용자 추가</DialogTitle>
           </DialogHeader>

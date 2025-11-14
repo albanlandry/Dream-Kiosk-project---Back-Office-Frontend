@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { apiClient } from '@/lib/api/client';
 import { useToastStore } from '@/lib/store/toastStore';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { UploadVideoModal } from '@/components/content/UploadVideoModal';
 import { cn } from '@/lib/utils/cn';
 
 interface Video {
@@ -29,6 +29,7 @@ export default function VideosManagementPage() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const { showSuccess, showError } = useToastStore();
 
   useEffect(() => {
@@ -112,6 +113,11 @@ export default function VideosManagementPage() {
       <Header
         title="비디오 관리"
         description="비디오 목록 및 관리"
+        action={{
+          label: '비디오 업로드',
+          icon: 'fas fa-upload',
+          onClick: () => setShowUploadModal(true),
+        }}
       />
       <div className="p-8 min-h-screen">
         {/* 검색 */}
@@ -207,6 +213,15 @@ export default function VideosManagementPage() {
           </div>
         )}
       </div>
+
+      {/* 비디오 업로드 모달 */}
+      <UploadVideoModal
+        open={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onSuccess={() => {
+          loadVideos();
+        }}
+      />
     </>
   );
 }
