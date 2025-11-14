@@ -175,7 +175,10 @@ export default function ImagesManagementPage() {
       />
       <div className="p-8 min-h-screen">
         {/* 검색 및 일괄 작업 */}
-        <div className="mb-6">
+        <div className={cn(
+          "mb-6 transition-all duration-200",
+          selectedImages.length > 0 && "sticky top-0 z-50 bg-white py-4 -mx-8 px-8 shadow-md border-b border-gray-200"
+        )}>
           <div className="flex gap-2 items-center justify-between">
             <Input
               type="text"
@@ -268,11 +271,16 @@ export default function ImagesManagementPage() {
                   />
                 </div>
                 <div className="relative aspect-video bg-gray-100 rounded-lg mb-3 overflow-hidden">
-                  {image.thumbnailPath ? (
+                  {image.id ? (
                     <img
-                      src={`http://localhost:3000${image.thumbnailPath}`}
+                      src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'}/api/v1/images/${image.id}/thumbnail`}
                       alt={image.originalName}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // Fallback to original image if thumbnail fails
+                        const target = e.target as HTMLImageElement;
+                        target.src = `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'}/api/v1/images/${image.id}`;
+                      }}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">

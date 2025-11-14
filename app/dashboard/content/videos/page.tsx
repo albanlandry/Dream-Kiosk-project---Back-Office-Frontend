@@ -159,7 +159,10 @@ export default function VideosManagementPage() {
       />
       <div className="p-8 min-h-screen">
         {/* 검색 및 일괄 작업 */}
-        <div className="mb-6">
+        <div className={cn(
+          "mb-6 transition-all duration-200",
+          selectedVideos.length > 0 && "sticky top-0 z-50 bg-white py-4 -mx-8 px-8 shadow-md border-b border-gray-200"
+        )}>
           <div className="flex gap-2 items-center justify-between">
             <Input
               type="text"
@@ -236,16 +239,24 @@ export default function VideosManagementPage() {
                   <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden">
                     {video.thumbnailUrl ? (
                       <img
-                        src={video.thumbnailUrl}
+                        src={video.thumbnailUrl.startsWith('http') 
+                          ? video.thumbnailUrl 
+                          : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'}${video.thumbnailUrl}`}
                         alt={video.userName}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                        }}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <i className="fas fa-video text-gray-400 text-4xl"></i>
                       </div>
                     )}
-                    {getStatusBadge(video.status)}
+                    <div className="absolute top-2 right-2">
+                      {getStatusBadge(video.status)}
+                    </div>
                   </div>
                   <div className="flex-1">
                     <h4 className="text-lg font-semibold text-gray-800 mb-2">
