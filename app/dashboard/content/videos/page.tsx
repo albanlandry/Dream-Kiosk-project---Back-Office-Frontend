@@ -30,6 +30,7 @@ export default function VideosManagementPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedVideos, setSelectedVideos] = useState<string[]>([]);
   const { showSuccess, showError } = useToastStore();
 
   useEffect(() => {
@@ -84,6 +85,43 @@ export default function VideosManagementPage() {
     }
   };
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedVideos(filteredVideos.map(video => video.id));
+    } else {
+      setSelectedVideos([]);
+    }
+  };
+
+  const handleSelectVideo = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedVideos([...selectedVideos, id]);
+    } else {
+      setSelectedVideos(selectedVideos.filter(videoId => videoId !== id));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedVideos.length === 0) {
+      showError('삭제할 비디오를 선택해주세요.');
+      return;
+    }
+
+    if (!confirm(`선택한 ${selectedVideos.length}개의 비디오를 삭제하시겠습니까?`)) {
+      return;
+    }
+
+    try {
+      const response = await apiClient.post('/videos/bulk/delete', { ids: selectedVideos });
+      const result = response.data?.data || response.data;
+      showSuccess(`${result.deleted}개의 비디오가 삭제되었습니다.${result.failed > 0 ? ` (${result.failed}개 실패)` : ''}`);
+      setSelectedVideos([]);
+      loadVideos();
+    } catch (error: any) {
+      showError(error.response?.data?.message || '일괄 삭제에 실패했습니다.');
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const statusMap = {
       processing: { label: '처리 중', class: 'bg-yellow-100 text-yellow-800' },
@@ -120,15 +158,40 @@ export default function VideosManagementPage() {
         }}
       />
       <div className="p-8 min-h-screen">
-        {/* 검색 */}
+        {/* 검색 및 일괄 작업 */}
         <div className="mb-6">
-          <Input
-            type="text"
-            placeholder="사용자 이름 또는 메시지로 검색..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-md"
-          />
+          <div className="flex gap-2 items-center justify-between">
+            <Input
+              type="text"
+              placeholder="사용자 이름 또는 메시지로 검색..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-md"
+            />
+            {selectedVideos.length > 0 && (
+              <div className="flex gap-2">
+                <span className="text-sm text-gray-600 self-center">
+                  {selectedVideos.length}개 선택됨
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleBulkDelete}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <i className="fas fa-trash mr-1"></i>
+                  삭제
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setSelectedVideos([])}
+                >
+                  선택 해제
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 비디오 목록 */}
@@ -142,11 +205,33 @@ export default function VideosManagementPage() {
           </div>
         ) : (
           <div className="space-y-4">
+            <div className="mb-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedVideos.length === filteredVideos.length && filteredVideos.length > 0}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 rounded"
+                />
+                <span className="text-sm text-gray-600">전체 선택</span>
+              </label>
+            </div>
             {filteredVideos.map((video) => (
               <div
                 key={video.id}
-                className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow"
+                className={cn(
+                  "bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow",
+                  selectedVideos.includes(video.id) && "ring-2 ring-blue-500"
+                )}
               >
+                <div className="mb-4">
+                  <input
+                    type="checkbox"
+                    checked={selectedVideos.includes(video.id)}
+                    onChange={(e) => handleSelectVideo(video.id, e.target.checked)}
+                    className="w-4 h-4 text-blue-600 rounded"
+                  />
+                </div>
                 <div className="grid grid-cols-[200px_1fr_auto] gap-6">
                   <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden">
                     {video.thumbnailUrl ? (

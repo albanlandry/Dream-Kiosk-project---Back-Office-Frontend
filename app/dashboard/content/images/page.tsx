@@ -30,6 +30,7 @@ export default function ImagesManagementPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const { showSuccess, showError } = useToastStore();
 
   useEffect(() => {
@@ -95,6 +96,63 @@ export default function ImagesManagementPage() {
     }
   };
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedImages(filteredImages.map(img => img.id));
+    } else {
+      setSelectedImages([]);
+    }
+  };
+
+  const handleSelectImage = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedImages([...selectedImages, id]);
+    } else {
+      setSelectedImages(selectedImages.filter(imgId => imgId !== id));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedImages.length === 0) {
+      showError('삭제할 이미지를 선택해주세요.');
+      return;
+    }
+
+    if (!confirm(`선택한 ${selectedImages.length}개의 이미지를 삭제하시겠습니까?`)) {
+      return;
+    }
+
+    try {
+      const response = await apiClient.post('/images/bulk/delete', { ids: selectedImages });
+      const result = response.data?.data || response.data;
+      showSuccess(`${result.deleted}개의 이미지가 삭제되었습니다.${result.failed > 0 ? ` (${result.failed}개 실패)` : ''}`);
+      setSelectedImages([]);
+      loadImages();
+    } catch (error: any) {
+      showError(error.response?.data?.message || '일괄 삭제에 실패했습니다.');
+    }
+  };
+
+  const handleBulkToggleActive = async (isActive: boolean) => {
+    if (selectedImages.length === 0) {
+      showError(`${isActive ? '활성화' : '비활성화'}할 이미지를 선택해주세요.`);
+      return;
+    }
+
+    try {
+      const response = await apiClient.post('/images/bulk/toggle-active', {
+        ids: selectedImages,
+        isActive,
+      });
+      const result = response.data?.data || response.data;
+      showSuccess(`${result.updated}개의 이미지가 ${isActive ? '활성화' : '비활성화'}되었습니다.${result.failed > 0 ? ` (${result.failed}개 실패)` : ''}`);
+      setSelectedImages([]);
+      loadImages();
+    } catch (error: any) {
+      showError(error.response?.data?.message || `일괄 ${isActive ? '활성화' : '비활성화'}에 실패했습니다.`);
+    }
+  };
+
   const filteredImages = images.filter((image) =>
     image.originalName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     image.description?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -116,9 +174,9 @@ export default function ImagesManagementPage() {
         }}
       />
       <div className="p-8 min-h-screen">
-        {/* 검색 */}
+        {/* 검색 및 일괄 작업 */}
         <div className="mb-6">
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center justify-between">
             <Input
               type="text"
               placeholder="이미지 이름 또는 설명으로 검색..."
@@ -126,6 +184,47 @@ export default function ImagesManagementPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-md"
             />
+            {selectedImages.length > 0 && (
+              <div className="flex gap-2">
+                <span className="text-sm text-gray-600 self-center">
+                  {selectedImages.length}개 선택됨
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleBulkToggleActive(true)}
+                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                >
+                  <i className="fas fa-eye mr-1"></i>
+                  활성화
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleBulkToggleActive(false)}
+                  className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
+                >
+                  <i className="fas fa-eye-slash mr-1"></i>
+                  비활성화
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleBulkDelete}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <i className="fas fa-trash mr-1"></i>
+                  삭제
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setSelectedImages([])}
+                >
+                  선택 해제
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -139,12 +238,35 @@ export default function ImagesManagementPage() {
             <p className="text-gray-500">이미지가 없습니다.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <>
+            <div className="mb-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedImages.length === filteredImages.length && filteredImages.length > 0}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 rounded"
+                />
+                <span className="text-sm text-gray-600">전체 선택</span>
+              </label>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredImages.map((image) => (
               <div
                 key={image.id}
-                className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow"
+                className={cn(
+                  "bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow",
+                  selectedImages.includes(image.id) && "ring-2 ring-blue-500"
+                )}
               >
+                <div className="mb-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedImages.includes(image.id)}
+                    onChange={(e) => handleSelectImage(image.id, e.target.checked)}
+                    className="w-4 h-4 text-blue-600 rounded"
+                  />
+                </div>
                 <div className="relative aspect-video bg-gray-100 rounded-lg mb-3 overflow-hidden">
                   {image.thumbnailPath ? (
                     <img
@@ -202,7 +324,8 @@ export default function ImagesManagementPage() {
                 </div>
               </div>
             ))}
-          </div>
+            </div>
+          </>
         )}
       </div>
 
