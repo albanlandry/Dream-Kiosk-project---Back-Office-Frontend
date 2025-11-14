@@ -5,13 +5,17 @@ import { StatCard } from '@/components/ui/stat-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FilterSection, FilterGroup, SearchGroup } from '@/components/ui/filter-section';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { UserTable } from '@/components/users/UserTable';
 import { BulkActions } from '@/components/users/BulkActions';
 import { AddUserModal } from '@/components/users/AddUserModal';
 import { ViewUserModal } from '@/components/users/ViewUserModal';
 import { EditUserModal } from '@/components/users/EditUserModal';
 import { Pagination } from '@/components/ui/pagination';
+import { apiClient } from '@/lib/api/client';
+import { useAuthStore } from '@/lib/store/authStore';
+import { useToastStore } from '@/lib/store/toastStore';
+import { useRouter } from 'next/navigation';
 
 export interface User {
   id: string;
@@ -180,16 +184,62 @@ const mockUsers: User[] = [
 const ITEMS_PER_PAGE = 10;
 
 export default function UserManagementPage() {
-  const [users, setUsers] = useState<User[]>(mockUsers);
+  const { admin, isAuthenticated } = useAuthStore();
+  const router = useRouter();
+  const { showError } = useToastStore();
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [joinDateFilter, setJoinDateFilter] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [showAddModal, setShowAddModal] = useState(false);
   const [viewingUser, setViewingUser] = useState<User | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+
+  // Check if user is admin
+  useEffect(() => {
+    if (!isAuthenticated || !admin) {
+      showError('관리자 권한이 필요합니다.');
+      router.push('/login');
+      return;
+    }
+
+    if (!admin.roles || !admin.roles.includes('admin')) {
+      showError('관리자 권한이 필요합니다.');
+      router.push('/dashboard');
+      return;
+    }
+  }, [isAuthenticated, admin, router, showError]);
+
+  // Load users from API
+  useEffect(() => {
+    if (isAuthenticated && admin && admin.roles?.includes('admin')) {
+      loadUsers();
+    }
+  }, [isAuthenticated, admin, currentPage]);
+
+  const loadUsers = async () => {
+    try {
+      setIsLoading(true);
+      const response = await apiClient.get(`/backoffice/admins?page=${currentPage}&limit=${ITEMS_PER_PAGE}`);
+      const responseData = response.data?.data || response.data;
+      const usersList = responseData?.items || [];
+      const total = responseData?.total_count || 0;
+      
+      setUsers(usersList);
+      setTotalPages(responseData?.total_pages || Math.ceil(total / ITEMS_PER_PAGE));
+    } catch (error: any) {
+      console.error('Failed to load users:', error);
+      showError('사용자 목록을 불러오는데 실패했습니다.');
+      setUsers([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const totalUsers = users.length;
   const activeUsers = users.filter((u) => u.status === 'active').length;
@@ -213,10 +263,7 @@ export default function UserManagementPage() {
   });
 
   // 페이지네이션 계산
-  const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+  const paginatedUsers = filteredUsers;
 
   // 필터 변경 시 첫 페이지로 리셋
   const handleFilterChange = () => {
@@ -272,6 +319,23 @@ export default function UserManagementPage() {
     setCurrentPage(page);
     setSelectedUsers([]);
   };
+
+  if (!isAuthenticated || !admin || !admin.roles?.includes('admin')) {
+    return null; // Will redirect in useEffect
+  }
+
+  if (isLoading) {
+    return (
+      <>
+        <Header title="사용자 관리" description="시스템 사용자 관리" />
+        <div className="p-8">
+          <div className="flex items-center justify-center h-64">
+            <p className="text-gray-500">로딩 중...</p>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   const handleView = (user: User) => {
     setViewingUser(user);
