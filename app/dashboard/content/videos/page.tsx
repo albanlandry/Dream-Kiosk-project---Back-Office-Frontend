@@ -164,13 +164,13 @@ export default function VideosManagementPage() {
           selectedVideos.length > 0 && "sticky top-0 z-50 bg-white py-4 -mx-8 px-8 shadow-md border-b border-gray-200"
         )}>
           <div className="flex gap-2 items-center justify-between">
-            <Input
-              type="text"
-              placeholder="사용자 이름 또는 메시지로 검색..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-md"
-            />
+          <Input
+            type="text"
+            placeholder="사용자 이름 또는 메시지로 검색..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="max-w-md"
+          />
             {selectedVideos.length > 0 && (
               <div className="flex gap-2">
                 <span className="text-sm text-gray-600 self-center">
@@ -255,7 +255,7 @@ export default function VideosManagementPage() {
                       </div>
                     )}
                     <div className="absolute top-2 right-2">
-                      {getStatusBadge(video.status)}
+                    {getStatusBadge(video.status)}
                     </div>
                   </div>
                   <div className="flex-1">
