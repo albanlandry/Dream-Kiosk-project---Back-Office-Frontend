@@ -14,6 +14,7 @@ const navigation = [
     submenu: [
       { name: '이미지 관리', href: '/dashboard/content/images', icon: 'fas fa-image' },
       { name: '비디오 관리', href: '/dashboard/content/videos', icon: 'fas fa-video' },
+      { name: '동물 관리', href: '/dashboard/content/animals', icon: 'fas fa-paw' },
       { name: '리소스 관리', href: '/dashboard/content/resources', icon: 'fas fa-folder' },
     ],
   },
