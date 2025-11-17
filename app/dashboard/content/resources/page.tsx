@@ -194,152 +194,57 @@ export default function ResourcesManagementPage() {
         page: currentPage,
         limit: 20,
         search: searchTerm || undefined,
+        type: mediaType === 'all' ? undefined : mediaType,
         status: mediaStatus === 'all' ? undefined : mediaStatus,
         sort_by: sortBy,
         sort_order: sortOrder,
       };
 
-      let allMedia: MediaItem[] = [];
-      let combinedPagination: Pagination = {
-        total: 0,
-        page: currentPage,
-        limit: 20,
-        totalPages: 1,
-        hasMore: false,
-      };
+      // Use the unified endpoint that combines images and videos using SQL UNION
+      const response = await apiClient.get('/resources/media', { params });
+      
+      // Response structure: { data: { data: [...], pagination: {...} }, _links: {...} }
+      const wrappedData = response.data?.data || response.data;
+      const mediaData = wrappedData?.data || [];
+      const paginationInfo = wrappedData?.pagination;
 
-      // Load images if needed
-      if (mediaType === 'image' || mediaType === 'all') {
-        const imageResponse = await apiClient.get('/resources/media/images', { params });
-        // Response structure: { data: { data: [...], pagination: {...} }, _links: {...} }
-        // So: imageResponse.data = { data: { data: [...], pagination: {...} }, _links: {...} }
-        //     imageResponse.data.data = { data: [...], pagination: {...} }
-        const wrappedData = imageResponse.data?.data || imageResponse.data;
-        const imagesData = wrappedData?.data;
-        const paginationInfo = wrappedData?.pagination;
-        
-        console.log('Image response structure:', {
-          fullResponse: imageResponse.data,
-          wrappedData,
-          imagesData: Array.isArray(imagesData) ? `${imagesData.length} items` : 'not an array',
-          paginationInfo
-        });
-        
-        const images = (Array.isArray(imagesData) ? imagesData : []).map((img: any) => ({
-          id: img.id,
-          type: 'image' as const,
-          name: img.originalName || img.filename,
-          thumbnail: img.thumbnailPath
-            ? `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'}/api/v1/images/${img.id}/thumbnail`
-            : undefined,
-          isActive: img.isActive,
-          createdAt: new Date(img.createdAt),
-          updatedAt: new Date(img.updatedAt),
-        }));
-        allMedia.push(...images);
-        console.log('Images loaded:', images.length, 'Total media so far:', allMedia.length);
-        
-        if (mediaType === 'image') {
-          // For single type, use backend pagination
-          const paginationData = paginationInfo || pagination;
-          setPagination({
-            total: paginationData.total || 0,
-            page: paginationData.page || currentPage,
-            limit: paginationData.limit || 20,
-            totalPages: paginationData.totalPages || 1,
-            hasMore: paginationData.hasMore || false,
-          });
-          console.log('Pagination set:', paginationData);
-        } else {
-          combinedPagination.total += paginationInfo?.total || 0;
+      // Transform the unified response to MediaItem format
+      const mediaItems: MediaItem[] = (Array.isArray(mediaData) ? mediaData : []).map((item: any) => {
+        // The backend already returns items with 'type' field ('image' or 'video')
+        const baseItem: MediaItem = {
+          id: item.id,
+          type: item.type || (item.originalName ? 'image' : 'video'),
+          name: item.name || item.originalName || item.userName || item.filename,
+          thumbnail: item.thumbnail || item.thumbnailPath || item.thumbnailUrl,
+          isActive: item.isActive !== undefined ? item.isActive : item.status === 'ready',
+          createdAt: new Date(item.createdAt),
+          updatedAt: new Date(item.updatedAt),
+        };
+
+        // For images, construct thumbnail URL if needed
+        if (baseItem.type === 'image' && baseItem.thumbnail && !baseItem.thumbnail.startsWith('http')) {
+          baseItem.thumbnail = `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'}/api/v1/images/${baseItem.id}/thumbnail`;
         }
-      }
 
-      // Load videos if needed
-      if (mediaType === 'video' || mediaType === 'all') {
-        const videoResponse = await apiClient.get('/resources/media/videos', { params });
-        // Response structure: { data: { data: [...], pagination: {...} }, _links: {...} }
-        // So: videoResponse.data = { data: { data: [...], pagination: {...} }, _links: {...} }
-        //     videoResponse.data.data = { data: [...], pagination: {...} }
-        const wrappedData = videoResponse.data?.data || videoResponse.data;
-        const videosData = wrappedData?.data;
-        const paginationInfo = wrappedData?.pagination;
-        
-        console.log('Video response structure:', {
-          fullResponse: videoResponse.data,
-          wrappedData,
-          videosData: Array.isArray(videosData) ? `${videosData.length} items` : 'not an array',
-          paginationInfo
-        });
-        
-        const videos = (Array.isArray(videosData) ? videosData : []).map((vid: any) => ({
-          id: vid.id,
-          type: 'video' as const,
-          name: vid.userName,
-          thumbnail: vid.thumbnailUrl
-            ? vid.thumbnailUrl.startsWith('http')
-              ? vid.thumbnailUrl
-              : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'}${vid.thumbnailUrl}`
-            : undefined,
-          isActive: vid.status === 'ready',
-          createdAt: new Date(vid.createdAt),
-          updatedAt: new Date(vid.updatedAt),
-        }));
-        allMedia.push(...videos);
-        console.log('Videos loaded:', videos.length, 'Total media so far:', allMedia.length);
-        
-        if (mediaType === 'video') {
-          // For single type, use backend pagination
-          const paginationData = paginationInfo || pagination;
-          setPagination({
-            total: paginationData.total || 0,
-            page: paginationData.page || currentPage,
-            limit: paginationData.limit || 20,
-            totalPages: paginationData.totalPages || 1,
-            hasMore: paginationData.hasMore || false,
-          });
-          console.log('Pagination set:', paginationData);
-        } else {
-          combinedPagination.total += paginationInfo?.total || 0;
+        // For videos, handle thumbnail URL
+        if (baseItem.type === 'video' && baseItem.thumbnail && !baseItem.thumbnail.startsWith('http')) {
+          baseItem.thumbnail = `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'}${baseItem.thumbnail}`;
         }
-      }
 
-      console.log('Final allMedia:', allMedia.length, 'mediaType:', mediaType);
+        return baseItem;
+      });
 
-      // Sort combined results if showing all
-      if (mediaType === 'all' && allMedia.length > 0) {
-        allMedia.sort((a, b) => {
-          let aValue: any, bValue: any;
-          if (sortBy === 'name') {
-            aValue = a.name.toLowerCase();
-            bValue = b.name.toLowerCase();
-          } else if (sortBy === 'updated_at') {
-            aValue = a.updatedAt.getTime();
-            bValue = b.updatedAt.getTime();
-          } else {
-            aValue = a.createdAt.getTime();
-            bValue = b.createdAt.getTime();
-          }
+      setMediaItems(mediaItems);
 
-          if (sortOrder === 'asc') {
-            return aValue > bValue ? 1 : -1;
-          } else {
-            return aValue < bValue ? 1 : -1;
-          }
+      // Set pagination from backend response
+      if (paginationInfo) {
+        setPagination({
+          total: paginationInfo.total || 0,
+          page: paginationInfo.page || currentPage,
+          limit: paginationInfo.limit || 20,
+          totalPages: paginationInfo.totalPages || 1,
+          hasMore: paginationInfo.hasMore || false,
         });
-        // For 'all', we need to paginate the combined results
-        const offset = (currentPage - 1) * params.limit;
-        const paginatedMedia = allMedia.slice(offset, offset + params.limit);
-        combinedPagination.total = allMedia.length;
-        combinedPagination.totalPages = Math.ceil(allMedia.length / params.limit);
-        combinedPagination.hasMore = offset + params.limit < allMedia.length;
-        setMediaItems(paginatedMedia);
-        setPagination(combinedPagination);
-        console.log('Set paginated media (all):', paginatedMedia.length);
-      } else {
-        // For single type (image or video), use the data directly from backend (already paginated)
-        setMediaItems(allMedia);
-        console.log('Set media items (single type):', allMedia.length);
       }
     } catch (error: any) {
       console.error('Error loading media:', error);
