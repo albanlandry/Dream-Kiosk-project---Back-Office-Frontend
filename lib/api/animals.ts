@@ -8,6 +8,9 @@ export interface Animal {
   characteristics?: string;
   themes?: string[];
   thumbnailUrl?: string;
+  loveFileUrl?: string;
+  healthFileUrl?: string;
+  wealthFileUrl?: string;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;

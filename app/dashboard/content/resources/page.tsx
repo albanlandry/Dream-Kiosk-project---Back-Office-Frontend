@@ -16,6 +16,7 @@ interface Resource {
   description?: string;
   images: Array<{ id: string; originalName: string; thumbnailPath?: string }>;
   videos: Array<{ id: string; userName: string; thumbnailUrl?: string }>;
+  animals: Array<{ id: string; name: string; thumbnailUrl?: string }>;
   kiosks: Array<{ id: string; name: string }>;
   createdAt: Date;
   updatedAt: Date;
@@ -23,7 +24,7 @@ interface Resource {
 
 interface MediaItem {
   id: string;
-  type: 'image' | 'video';
+  type: 'image' | 'video' | 'animal';
   name: string;
   thumbnail?: string;
   isActive?: boolean;
@@ -39,7 +40,7 @@ interface Pagination {
   hasMore: boolean;
 }
 
-type MediaType = 'image' | 'video' | 'all';
+type MediaType = 'image' | 'video' | 'animal' | 'all';
 type MediaStatus = 'active' | 'inactive' | 'all';
 type SortBy = 'name' | 'created_at' | 'updated_at';
 type SortOrder = 'asc' | 'desc';
@@ -63,6 +64,7 @@ export default function ResourcesManagementPage() {
     description: '',
     imageIds: [] as string[],
     videoIds: [] as string[],
+    animalIds: [] as string[],
     kioskIds: [] as string[],
   });
 
@@ -210,13 +212,13 @@ export default function ResourcesManagementPage() {
 
       // Transform the unified response to MediaItem format
       const mediaItems: MediaItem[] = (Array.isArray(mediaData) ? mediaData : []).map((item: any) => {
-        // The backend already returns items with 'type' field ('image' or 'video')
+        // The backend already returns items with 'type' field ('image', 'video', or 'animal')
         const baseItem: MediaItem = {
           id: item.id,
-          type: item.type || (item.originalName ? 'image' : 'video'),
+          type: item.media_type || item.type || (item.originalName ? 'image' : item.userName ? 'video' : 'animal'),
           name: item.name || item.originalName || item.userName || item.filename,
           thumbnail: item.thumbnail || item.thumbnailPath || item.thumbnailUrl,
-          isActive: item.isActive !== undefined ? item.isActive : item.status === 'ready',
+          isActive: item.isActive !== undefined ? item.isActive : item.is_active !== undefined ? item.is_active : item.status === 'ready',
           createdAt: new Date(item.createdAt),
           updatedAt: new Date(item.updatedAt),
         };
@@ -228,6 +230,11 @@ export default function ResourcesManagementPage() {
 
         // For videos, handle thumbnail URL
         if (baseItem.type === 'video' && baseItem.thumbnail && !baseItem.thumbnail.startsWith('http')) {
+          baseItem.thumbnail = `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'}${baseItem.thumbnail}`;
+        }
+
+        // For animals, handle thumbnail URL
+        if (baseItem.type === 'animal' && baseItem.thumbnail && !baseItem.thumbnail.startsWith('http')) {
           baseItem.thumbnail = `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'}${baseItem.thumbnail}`;
         }
 
@@ -260,6 +267,7 @@ export default function ResourcesManagementPage() {
     setSelectedMediaIds([
       ...resource.images.map((img) => img.id),
       ...resource.videos.map((vid) => vid.id),
+      ...(resource.animals || []).map((animal) => animal.id),
     ]);
   };
 
@@ -282,9 +290,10 @@ export default function ResourcesManagementPage() {
       return;
     }
 
-    // Separate image and video IDs from selected media
+    // Separate image, video, and animal IDs from selected media
     const imageIds: string[] = [];
     const videoIds: string[] = [];
+    const animalIds: string[] = [];
 
     // Check all selected media IDs to determine their type
     for (const mediaId of selectedMediaIds) {
@@ -295,19 +304,24 @@ export default function ResourcesManagementPage() {
           imageIds.push(mediaId);
         } else if (mediaItem.type === 'video') {
           videoIds.push(mediaId);
+        } else if (mediaItem.type === 'animal') {
+          animalIds.push(mediaId);
         }
       } else {
         // If not in current page, check if it's already in the selected resource
         const isImage = selectedResource.images.some((img) => img.id === mediaId);
         const isVideo = selectedResource.videos.some((vid) => vid.id === mediaId);
+        const isAnimal = (selectedResource.animals || []).some((animal) => animal.id === mediaId);
         
         if (isImage) {
           imageIds.push(mediaId);
         } else if (isVideo) {
           videoIds.push(mediaId);
+        } else if (isAnimal) {
+          animalIds.push(mediaId);
         } else {
           // For items not in current page and not in resource, we need to check the API
-          // Try to determine by checking if it exists in images or videos
+          // Try to determine by checking if it exists in images, videos, or animals
           // This is a fallback - in most cases items should be in mediaItems
           try {
             // Try image first
@@ -320,7 +334,13 @@ export default function ResourcesManagementPage() {
                 await apiClient.get(`/videos/${mediaId}`);
                 videoIds.push(mediaId);
               } catch {
-                console.warn(`Media ID ${mediaId} not found in images or videos, skipping`);
+                // Not a video, try animal
+                try {
+                  await apiClient.get(`/animals/${mediaId}`);
+                  animalIds.push(mediaId);
+                } catch {
+                  console.warn(`Media ID ${mediaId} not found in images, videos, or animals, skipping`);
+                }
               }
             }
           } catch (error) {
@@ -336,11 +356,16 @@ export default function ResourcesManagementPage() {
         description: selectedResource.description || undefined,
         imageIds: imageIds,
         videoIds: videoIds,
+        animalIds: animalIds,
         kioskIds: selectedResource.kiosks.map((k) => k.id),
       };
 
       await apiClient.patch(`/resources/${selectedResource.id}`, updateData);
-      showSuccess(`리소스에 ${imageIds.length}개의 이미지와 ${videoIds.length}개의 비디오가 연결되었습니다.`);
+      const mediaCounts = [];
+      if (imageIds.length > 0) mediaCounts.push(`${imageIds.length}개의 이미지`);
+      if (videoIds.length > 0) mediaCounts.push(`${videoIds.length}개의 비디오`);
+      if (animalIds.length > 0) mediaCounts.push(`${animalIds.length}개의 동물`);
+      showSuccess(`리소스에 ${mediaCounts.join(', ')}가 연결되었습니다.`);
       
       // Reload resources to reflect changes
       await loadResources();
@@ -355,6 +380,7 @@ export default function ResourcesManagementPage() {
         setSelectedMediaIds([
           ...updatedResource.images.map((img) => img.id),
           ...updatedResource.videos.map((vid) => vid.id),
+          ...(updatedResource.animals || []).map((animal) => animal.id),
         ]);
       }
     } catch (error: any) {
@@ -446,6 +472,7 @@ export default function ResourcesManagementPage() {
     return {
       images: resource.images || [],
       videos: resource.videos || [],
+      animals: resource.animals || [],
     };
   };
 
@@ -533,9 +560,13 @@ export default function ResourcesManagementPage() {
                           <i className="fas fa-video mr-1"></i>
                           {media.videos.length}개
                         </span>
+                        <span>
+                          <i className="fas fa-paw mr-1"></i>
+                          {media.animals.length}개
+                        </span>
                       </div>
                       {/* 미디어 보기 버튼 */}
-                      {(media.images.length > 0 || media.videos.length > 0) && (
+                      {(media.images.length > 0 || media.videos.length > 0 || media.animals.length > 0) && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -545,7 +576,7 @@ export default function ResourcesManagementPage() {
                           className="text-xs text-blue-600 hover:text-blue-700 mb-2 text-left"
                         >
                           <i className="fas fa-eye mr-1"></i>
-                          미디어 보기 ({media.images.length + media.videos.length}개)
+                          미디어 보기 ({media.images.length + media.videos.length + media.animals.length}개)
                         </button>
                       )}
                       {/* 리소스에 속한 미디어 미리보기 */}
@@ -588,9 +619,29 @@ export default function ResourcesManagementPage() {
                             )}
                           </div>
                         ))}
-                        {(media.images.length + media.videos.length) > 6 && (
+                        {media.animals.slice(0, 3).map((animal) => (
+                          <div
+                            key={animal.id}
+                            className="w-12 h-12 rounded border border-gray-200 overflow-hidden bg-gray-100"
+                          >
+                            {animal.thumbnailUrl ? (
+                              <img
+                                src={animal.thumbnailUrl.startsWith('http') 
+                                  ? animal.thumbnailUrl 
+                                  : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'}${animal.thumbnailUrl}`}
+                                alt={animal.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <i className="fas fa-paw text-gray-400"></i>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        {(media.images.length + media.videos.length + media.animals.length) > 6 && (
                           <div className="w-12 h-12 rounded border border-gray-200 bg-gray-100 flex items-center justify-center text-xs text-gray-500">
-                            +{media.images.length + media.videos.length - 6}
+                            +{media.images.length + media.videos.length + media.animals.length - 6}
                           </div>
                         )}
                       </div>
@@ -641,6 +692,7 @@ export default function ResourcesManagementPage() {
                       <option value="all">전체</option>
                       <option value="image">이미지</option>
                       <option value="video">비디오</option>
+                      <option value="animal">동물</option>
                     </select>
                     <select
                       value={mediaStatus}
@@ -753,7 +805,11 @@ export default function ResourcesManagementPage() {
                                   <i
                                     className={cn(
                                       'text-gray-400 text-2xl',
-                                      item.type === 'image' ? 'fas fa-image' : 'fas fa-video'
+                                      item.type === 'image' 
+                                        ? 'fas fa-image' 
+                                        : item.type === 'video' 
+                                        ? 'fas fa-video' 
+                                        : 'fas fa-paw'
                                     )}
                                   ></i>
                                 </div>
@@ -769,10 +825,12 @@ export default function ResourcesManagementPage() {
                                     'text-xs px-1.5 py-0.5 rounded',
                                     item.type === 'image'
                                       ? 'bg-purple-100 text-purple-700'
-                                      : 'bg-blue-100 text-blue-700'
+                                      : item.type === 'video'
+                                      ? 'bg-blue-100 text-blue-700'
+                                      : 'bg-green-100 text-green-700'
                                   )}
                                 >
-                                  {item.type === 'image' ? '이미지' : '비디오'}
+                                  {item.type === 'image' ? '이미지' : item.type === 'video' ? '비디오' : '동물'}
                                 </span>
                                 {item.isActive !== undefined && (
                                   <span
@@ -921,7 +979,46 @@ export default function ResourcesManagementPage() {
                 </div>
               )}
 
-              {viewingResource.images.length === 0 && viewingResource.videos.length === 0 && (
+              {/* 동물 섹션 */}
+              {viewingResource.animals && viewingResource.animals.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                    <i className="fas fa-paw mr-2"></i>
+                    동물 ({viewingResource.animals.length}개)
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {viewingResource.animals.map((animal) => (
+                      <div
+                        key={animal.id}
+                        className="border border-gray-200 rounded-lg overflow-hidden"
+                      >
+                        <div className="aspect-video bg-gray-100">
+                          {animal.thumbnailUrl ? (
+                            <img
+                              src={animal.thumbnailUrl.startsWith('http') 
+                                ? animal.thumbnailUrl 
+                                : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'}${animal.thumbnailUrl}`}
+                              alt={animal.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <i className="fas fa-paw text-gray-400 text-2xl"></i>
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-2">
+                          <p className="text-sm font-medium text-gray-800 truncate">
+                            {animal.name}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {viewingResource.images.length === 0 && viewingResource.videos.length === 0 && (!viewingResource.animals || viewingResource.animals.length === 0) && (
                 <div className="text-center py-8 text-gray-500">
                   이 리소스에 첨부된 미디어가 없습니다.
                 </div>
