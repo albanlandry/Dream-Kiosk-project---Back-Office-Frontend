@@ -3,7 +3,7 @@
 import { Header } from '@/components/layout/Header';
 import { StatCard } from '@/components/ui/stat-card';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ProjectItem } from '@/components/projects/ProjectItem';
 import { AddProjectModal } from '@/components/projects/AddProjectModal';
 import { ViewProjectModal } from '@/components/projects/ViewProjectModal';
@@ -11,6 +11,7 @@ import { EditProjectModal } from '@/components/projects/EditProjectModal';
 import { Pagination } from '@/components/ui/pagination';
 import { useToastStore } from '@/lib/store/toastStore';
 import { LoadingModal } from '@/components/ui/loading-modal';
+import { projectsApi, type Project as ApiProject } from '@/lib/api/projects';
 
 export interface Project {
   id: string;
@@ -26,166 +27,55 @@ export interface Project {
   owner: string;
 }
 
-const mockProjects: Project[] = [
-  {
-    id: '1',
-    name: '강남점 프로젝트',
-    description: '강남점 키오스크 운영 프로젝트',
-    status: 'active',
-    startDate: '2024-11-01',
-    kioskCount: 2,
-    contentPCCount: 4,
-    totalContent: 456,
-    totalRevenue: 1234567,
-    owner: '김철수',
-  },
-  {
-    id: '2',
-    name: '홍대점 프로젝트',
-    description: '홍대점 키오스크 운영 프로젝트',
-    status: 'active',
-    startDate: '2024-11-15',
-    kioskCount: 1,
-    contentPCCount: 2,
-    totalContent: 234,
-    totalRevenue: 567890,
-    owner: '이영희',
-  },
-  {
-    id: '3',
-    name: '부산점 프로젝트',
-    description: '부산점 키오스크 운영 프로젝트',
-    status: 'active',
-    startDate: '2024-12-01',
-    kioskCount: 1,
-    contentPCCount: 3,
-    totalContent: 123,
-    totalRevenue: 345678,
-    owner: '박민수',
-  },
-  {
-    id: '4',
-    name: '대구점 프로젝트',
-    description: '대구점 키오스크 운영 프로젝트',
-    status: 'paused',
-    startDate: '2024-10-15',
-    kioskCount: 1,
-    contentPCCount: 2,
-    totalContent: 89,
-    totalRevenue: 234567,
-    owner: '최지영',
-  },
-  {
-    id: '5',
-    name: '인천점 프로젝트',
-    description: '인천점 키오스크 운영 프로젝트',
-    status: 'stopped',
-    startDate: '2024-09-01',
-    endDate: '2024-11-30',
-    kioskCount: 1,
-    contentPCCount: 2,
-    totalContent: 156,
-    totalRevenue: 456789,
-    owner: '정수진',
-  },
-  {
-    id: '6',
-    name: '수원점 프로젝트',
-    description: '수원점 키오스크 운영 프로젝트',
-    status: 'active',
-    startDate: '2024-12-05',
-    kioskCount: 2,
-    contentPCCount: 3,
-    totalContent: 267,
-    totalRevenue: 789012,
-    owner: '한미영',
-  },
-  {
-    id: '7',
-    name: '광주점 프로젝트',
-    description: '광주점 키오스크 운영 프로젝트',
-    status: 'active',
-    startDate: '2024-11-20',
-    kioskCount: 1,
-    contentPCCount: 2,
-    totalContent: 178,
-    totalRevenue: 456123,
-    owner: '송대현',
-  },
-  {
-    id: '8',
-    name: '대전점 프로젝트',
-    description: '대전점 키오스크 운영 프로젝트',
-    status: 'paused',
-    startDate: '2024-10-10',
-    kioskCount: 1,
-    contentPCCount: 1,
-    totalContent: 67,
-    totalRevenue: 123456,
-    owner: '윤서연',
-  },
-  {
-    id: '9',
-    name: '울산점 프로젝트',
-    description: '울산점 키오스크 운영 프로젝트',
-    status: 'active',
-    startDate: '2024-12-10',
-    kioskCount: 1,
-    contentPCCount: 2,
-    totalContent: 145,
-    totalRevenue: 345789,
-    owner: '강민호',
-  },
-  {
-    id: '10',
-    name: '제주점 프로젝트',
-    description: '제주점 키오스크 운영 프로젝트',
-    status: 'active',
-    startDate: '2024-11-25',
-    kioskCount: 1,
-    contentPCCount: 2,
-    totalContent: 98,
-    totalRevenue: 234567,
-    owner: '오지은',
-  },
-  {
-    id: '11',
-    name: '천안점 프로젝트',
-    description: '천안점 키오스크 운영 프로젝트',
-    status: 'active',
-    startDate: '2024-12-08',
-    kioskCount: 1,
-    contentPCCount: 1,
-    totalContent: 76,
-    totalRevenue: 189234,
-    owner: '임동욱',
-  },
-  {
-    id: '12',
-    name: '청주점 프로젝트',
-    description: '청주점 키오스크 운영 프로젝트',
-    status: 'stopped',
-    startDate: '2024-08-15',
-    endDate: '2024-10-30',
-    kioskCount: 1,
-    contentPCCount: 1,
-    totalContent: 45,
-    totalRevenue: 98765,
-    owner: '조은혜',
-  },
-];
+// Transform API project to UI project format
+function transformProject(apiProject: ApiProject): Project {
+  return {
+    id: apiProject.id,
+    name: apiProject.name,
+    description: apiProject.description || '',
+    status: apiProject.status,
+    startDate: apiProject.startDate,
+    endDate: apiProject.endDate,
+    kioskCount: apiProject.kiosks?.length || 0,
+    contentPCCount: 0, // This might need to be calculated from related data
+    totalContent: apiProject.totalContent || 0,
+    totalRevenue: apiProject.totalRevenue || 0,
+    owner: apiProject.owner,
+  };
+}
 
 const ITEMS_PER_PAGE = 5;
 
 export default function ProjectManagementPage() {
-  const [projects, setProjects] = useState<Project[]>(mockProjects);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [showAddModal, setShowAddModal] = useState(false);
   const [viewingProject, setViewingProject] = useState<Project | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('');
   const { showSuccess, showError, showWarning } = useToastStore();
+
+  // Load projects from database on mount
+  useEffect(() => {
+    loadProjects();
+  }, []);
+
+  const loadProjects = async () => {
+    try {
+      setIsLoadingProjects(true);
+      const apiProjects = await projectsApi.getAll();
+      const transformedProjects = apiProjects.map(transformProject);
+      setProjects(transformedProjects);
+    } catch (error: any) {
+      console.error('Failed to load projects:', error);
+      showError('프로젝트를 불러오는데 실패했습니다.');
+      setProjects([]);
+    } finally {
+      setIsLoadingProjects(false);
+    }
+  };
 
   const totalProjects = projects.length;
   const activeProjects = projects.filter((p) => p.status === 'active').length;
@@ -210,62 +100,72 @@ export default function ProjectManagementPage() {
     setEditingProject(project);
   };
 
-  const handlePause = (project: Project) => {
+  const handlePause = async (project: Project) => {
     if (confirm(`${project.name}을(를) 일시정지하시겠습니까?`)) {
-      setLoadingMessage('프로젝트 일시정지 중...');
-      setIsLoading(true);
-      
-      // Simulate API call
-      setTimeout(() => {
-        setProjects(
-          projects.map((p) => (p.id === project.id ? { ...p, status: 'paused' as const } : p))
-        );
-        setIsLoading(false);
+      try {
+        setLoadingMessage('프로젝트 일시정지 중...');
+        setIsLoading(true);
+        await projectsApi.update(project.id, { status: 'paused' });
+        await loadProjects();
         showSuccess(`${project.name}이(가) 일시정지되었습니다.`);
-      }, 1500);
+      } catch (error: any) {
+        console.error('Failed to pause project:', error);
+        showError(error.response?.data?.message || '프로젝트 일시정지에 실패했습니다.');
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
-  const handleResume = (project: Project) => {
+  const handleResume = async (project: Project) => {
     if (confirm(`${project.name}을(를) 재시작하시겠습니까?`)) {
-      setLoadingMessage('프로젝트 재시작 중...');
-      setIsLoading(true);
-      
-      // Simulate API call
-      setTimeout(() => {
-        setProjects(
-          projects.map((p) => (p.id === project.id ? { ...p, status: 'active' as const } : p))
-        );
-        setIsLoading(false);
+      try {
+        setLoadingMessage('프로젝트 재시작 중...');
+        setIsLoading(true);
+        await projectsApi.update(project.id, { status: 'active' });
+        await loadProjects();
         showSuccess(`${project.name}이(가) 재시작되었습니다.`);
-      }, 1500);
-    }
-  };
-
-  const handleStop = (project: Project) => {
-    if (confirm(`${project.name}을(를) 종료하시겠습니까?`)) {
-      setLoadingMessage('프로젝트 종료 중...');
-      setIsLoading(true);
-      
-      // Simulate API call
-      setTimeout(() => {
-        setProjects(
-          projects.map((p) =>
-            p.id === project.id
-              ? { ...p, status: 'stopped' as const, endDate: new Date().toISOString().split('T')[0] }
-              : p
-          )
-        );
+      } catch (error: any) {
+        console.error('Failed to resume project:', error);
+        showError(error.response?.data?.message || '프로젝트 재시작에 실패했습니다.');
+      } finally {
         setIsLoading(false);
-        showSuccess(`${project.name}이(가) 종료되었습니다.`);
-      }, 1500);
+      }
     }
   };
 
-  const handleDelete = (project: Project) => {
+  const handleStop = async (project: Project) => {
+    if (confirm(`${project.name}을(를) 종료하시겠습니까?`)) {
+      try {
+        setLoadingMessage('프로젝트 종료 중...');
+        setIsLoading(true);
+        const endDate = new Date().toISOString().split('T')[0];
+        await projectsApi.update(project.id, { status: 'stopped', endDate });
+        await loadProjects();
+        showSuccess(`${project.name}이(가) 종료되었습니다.`);
+      } catch (error: any) {
+        console.error('Failed to stop project:', error);
+        showError(error.response?.data?.message || '프로젝트 종료에 실패했습니다.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const handleDelete = async (project: Project) => {
     if (confirm(`${project.name}을(를) 삭제하시겠습니까?`)) {
-      setProjects(projects.filter((p) => p.id !== project.id));
-      showSuccess(`${project.name}이(가) 삭제되었습니다.`);
+      try {
+        setLoadingMessage('프로젝트 삭제 중...');
+        setIsLoading(true);
+        await projectsApi.delete(project.id);
+        await loadProjects();
+        showSuccess(`${project.name}이(가) 삭제되었습니다.`);
+      } catch (error: any) {
+        console.error('Failed to delete project:', error);
+        showError(error.response?.data?.message || '프로젝트 삭제에 실패했습니다.');
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -314,20 +214,30 @@ export default function ProjectManagementPage() {
         </div>
 
         {/* 프로젝트 목록 */}
-        <div className="space-y-6 mb-6">
-          {paginatedProjects.map((project) => (
-            <ProjectItem
-              key={project.id}
-              project={project}
-              onView={handleView}
-              onEdit={handleEdit}
-              onPause={handlePause}
-              onResume={handleResume}
-              onStop={handleStop}
-              onDelete={handleDelete}
-            />
-          ))}
-        </div>
+        {isLoadingProjects ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-gray-500">프로젝트를 불러오는 중...</div>
+          </div>
+        ) : projects.length === 0 ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-gray-500">프로젝트가 없습니다.</div>
+          </div>
+        ) : (
+          <div className="space-y-6 mb-6">
+            {paginatedProjects.map((project) => (
+              <ProjectItem
+                key={project.id}
+                project={project}
+                onView={handleView}
+                onEdit={handleEdit}
+                onPause={handlePause}
+                onResume={handleResume}
+                onStop={handleStop}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+        )}
 
         {/* 페이지네이션 */}
         {totalPages > 1 && (
@@ -345,8 +255,8 @@ export default function ProjectManagementPage() {
       {showAddModal && (
         <AddProjectModal
           onClose={() => setShowAddModal(false)}
-          onSuccess={(newProject) => {
-            setProjects([...projects, newProject]);
+          onSuccess={async () => {
+            await loadProjects();
             setShowAddModal(false);
           }}
         />
@@ -363,8 +273,8 @@ export default function ProjectManagementPage() {
         <EditProjectModal
           project={editingProject}
           onClose={() => setEditingProject(null)}
-          onSuccess={(updatedProject) => {
-            setProjects(projects.map((p) => (p.id === updatedProject.id ? updatedProject : p)));
+          onSuccess={async () => {
+            await loadProjects();
             setEditingProject(null);
           }}
         />
