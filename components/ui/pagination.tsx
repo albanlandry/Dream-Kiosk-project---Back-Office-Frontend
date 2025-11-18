@@ -77,11 +77,12 @@ export function Pagination({
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
       />
       <div className={cn('flex items-center justify-center gap-2', className)}>
+        {/* 이전 버튼 - 밝은 회색 */}
         <Button
           onClick={handlePrevious}
           disabled={currentPage === 1}
           className={cn(
-            'bg-gray-500 hover:bg-gray-600 text-white',
+            'bg-gray-400 hover:bg-gray-500 text-white rounded-lg',
             currentPage === 1 && 'opacity-50 cursor-not-allowed'
           )}
           size="sm"
@@ -90,6 +91,7 @@ export function Pagination({
           이전
         </Button>
 
+        {/* 페이지 번호 버튼들 */}
         <div className="flex gap-2">
           {pageNumbers.map((page, index) => {
             if (page === '...') {
@@ -111,10 +113,10 @@ export function Pagination({
                 key={pageNum}
                 onClick={() => onPageChange(pageNum)}
                 className={cn(
-                  'min-w-[40px]',
+                  'min-w-[40px] rounded-lg',
                   isActive
-                    ? 'bg-gradient-to-r from-purple-600 to-purple-400 text-white hover:from-purple-700 hover:to-purple-500'
-                    : 'bg-gray-500 hover:bg-gray-600 text-white'
+                    ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600'
+                    : 'bg-gray-700 hover:bg-gray-800 text-white'
                 )}
                 size="sm"
               >
@@ -124,11 +126,12 @@ export function Pagination({
           })}
         </div>
 
+        {/* 다음 버튼 - 어두운 회색 */}
         <Button
           onClick={handleNext}
           disabled={currentPage === totalPages}
           className={cn(
-            'bg-gray-500 hover:bg-gray-600 text-white',
+            'bg-gray-700 hover:bg-gray-800 text-white rounded-lg',
             currentPage === totalPages && 'opacity-50 cursor-not-allowed'
           )}
           size="sm"

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { FilterSection, FilterGroup, SearchGroup } from '@/components/ui/filter-section';
 import { Button } from '@/components/ui/button';
@@ -10,20 +11,92 @@ import { StatCard } from '@/components/ui/stat-card';
 import { cn } from '@/lib/utils/cn';
 import { ViewProposalModal } from '@/components/proposals/ViewProposalModal';
 import { EditProposalModal } from '@/components/proposals/EditProposalModal';
+import { Pagination } from '@/components/ui/pagination';
+
+const ITEMS_PER_PAGE = 10;
 
 export default function ProposalsManagementPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [stats, setStats] = useState<ProposalStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [projectFilter, setProjectFilter] = useState('');
-  const [durationFilter, setDurationFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [dateFilter, setDateFilter] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Initialize filters from URL query parameters
+  const [projectFilter, setProjectFilter] = useState(searchParams.get('project') || '');
+  const [durationFilter, setDurationFilter] = useState(searchParams.get('duration') || '');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
+  const [dateFilter, setDateFilter] = useState(searchParams.get('date') || '');
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page')) || 1);
+  
   const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
   const [viewingProposal, setViewingProposal] = useState<Proposal | null>(null);
   const [editingProposal, setEditingProposal] = useState<Proposal | null>(null);
   const { showSuccess, showError } = useToastStore();
+
+  // Update URL query parameters
+  const updateURL = useCallback((updates: {
+    project?: string;
+    duration?: string;
+    status?: string;
+    date?: string;
+    search?: string;
+    page?: number;
+  }) => {
+    const params = new URLSearchParams(searchParams.toString());
+    
+    if (updates.project !== undefined) {
+      if (updates.project) {
+        params.set('project', updates.project);
+      } else {
+        params.delete('project');
+      }
+    }
+    
+    if (updates.duration !== undefined) {
+      if (updates.duration) {
+        params.set('duration', updates.duration);
+      } else {
+        params.delete('duration');
+      }
+    }
+    
+    if (updates.status !== undefined) {
+      if (updates.status) {
+        params.set('status', updates.status);
+      } else {
+        params.delete('status');
+      }
+    }
+    
+    if (updates.date !== undefined) {
+      if (updates.date) {
+        params.set('date', updates.date);
+      } else {
+        params.delete('date');
+      }
+    }
+    
+    if (updates.search !== undefined) {
+      if (updates.search) {
+        params.set('search', updates.search);
+      } else {
+        params.delete('search');
+      }
+    }
+    
+    if (updates.page !== undefined) {
+      if (updates.page > 1) {
+        params.set('page', updates.page.toString());
+      } else {
+        params.delete('page');
+      }
+    }
+    
+    router.push(`/dashboard/propose?${params.toString()}`, { scroll: false });
+  }, [router, searchParams]);
 
   const loadData = useCallback(async () => {
     try {
@@ -52,9 +125,27 @@ export default function ProposalsManagementPage() {
     }
   }, [showError]);
 
+  // Load data on mount
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Sync URL params to state on mount
+  useEffect(() => {
+    const project = searchParams.get('project') || '';
+    const duration = searchParams.get('duration') || '';
+    const status = searchParams.get('status') || '';
+    const date = searchParams.get('date') || '';
+    const search = searchParams.get('search') || '';
+    const page = Number(searchParams.get('page')) || 1;
+    
+    setProjectFilter(project);
+    setDurationFilter(duration);
+    setStatusFilter(status);
+    setDateFilter(date);
+    setSearchQuery(search);
+    setCurrentPage(page);
+  }, [searchParams]);
 
   const handleDelete = async (id: string) => {
     if (!confirm('이 프로포즈를 삭제하시겠습니까?')) {
@@ -120,6 +211,61 @@ export default function ProposalsManagementPage() {
 
     return true;
   });
+
+  // Pagination calculations
+  const totalPages = Math.max(1, Math.ceil(filteredProposals.length / ITEMS_PER_PAGE));
+  const validCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+  const startIndex = (validCurrentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedProposals = filteredProposals.slice(startIndex, endIndex);
+  
+  // Sync currentPage if it's out of range
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+      updateURL({ page: totalPages });
+    } else if (currentPage < 1) {
+      setCurrentPage(1);
+      updateURL({ page: 1 });
+    }
+  }, [currentPage, totalPages, updateURL]);
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    updateURL({ page });
+  };
+
+  // Handle filter changes
+  const handleProjectFilterChange = (value: string) => {
+    setProjectFilter(value);
+    setCurrentPage(1);
+    updateURL({ project: value, page: 1 });
+  };
+
+  const handleDurationFilterChange = (value: string) => {
+    setDurationFilter(value);
+    setCurrentPage(1);
+    updateURL({ duration: value, page: 1 });
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setCurrentPage(1);
+    updateURL({ status: value, page: 1 });
+  };
+
+  const handleDateFilterChange = (value: string) => {
+    setDateFilter(value);
+    setCurrentPage(1);
+    updateURL({ date: value, page: 1 });
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1);
+    updateURL({ search: value, page: 1 });
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -259,7 +405,7 @@ export default function ProposalsManagementPage() {
           <FilterGroup label="프로젝트:">
             <select
               value={projectFilter}
-              onChange={(e) => setProjectFilter(e.target.value)}
+              onChange={(e) => handleProjectFilterChange(e.target.value)}
               className="px-4 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500"
             >
               <option value="">전체</option>
@@ -273,7 +419,7 @@ export default function ProposalsManagementPage() {
           <FilterGroup label="기간:">
             <select
               value={durationFilter}
-              onChange={(e) => setDurationFilter(e.target.value)}
+              onChange={(e) => handleDurationFilterChange(e.target.value)}
               className="px-4 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500"
             >
               <option value="">전체</option>
@@ -286,7 +432,7 @@ export default function ProposalsManagementPage() {
           <FilterGroup label="상태:">
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => handleStatusFilterChange(e.target.value)}
               className="px-4 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500"
             >
               <option value="">전체</option>
@@ -299,14 +445,14 @@ export default function ProposalsManagementPage() {
             <input
               type="date"
               value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
+              onChange={(e) => handleDateFilterChange(e.target.value)}
               className="px-4 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500"
             />
           </FilterGroup>
           <SearchGroup
             placeholder="이름 또는 메시지 검색..."
             value={searchQuery}
-            onChange={setSearchQuery}
+            onChange={handleSearchChange}
             onSearch={() => {
               // Search is handled by filter
             }}
@@ -325,8 +471,9 @@ export default function ProposalsManagementPage() {
             <p className="text-gray-600 text-lg">프로포즈가 없습니다.</p>
           </div>
         ) : (
-          <div className="space-y-6">
-            {filteredProposals.map((proposal) => (
+          <>
+            <div className="space-y-6 mb-6">
+              {paginatedProposals.map((proposal) => (
               <div
                 key={proposal.id}
                 className="bg-white rounded-xl p-6 shadow-sm grid grid-cols-[200px_1fr_auto] gap-6"
@@ -431,8 +578,20 @@ export default function ProposalsManagementPage() {
                   </Button>
                 </div>
               </div>
-            ))}
-          </div>
+              ))}
+            </div>
+
+            {/* 페이지네이션 */}
+            {filteredProposals.length > 0 && (
+              <div className="flex justify-center mt-8 mb-4">
+                <Pagination
+                  currentPage={validCurrentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                />
+              </div>
+            )}
+          </>
         )}
       </div>
 
