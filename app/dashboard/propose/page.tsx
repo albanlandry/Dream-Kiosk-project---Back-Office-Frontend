@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Header } from '@/components/layout/Header';
 import { FilterSection, FilterGroup, SearchGroup } from '@/components/ui/filter-section';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { proposalsApi, Proposal, ProposalStats } from '@/lib/api/proposals';
 import { useToastStore } from '@/lib/store/toastStore';
 import { StatCard } from '@/components/ui/stat-card';
@@ -26,11 +25,7 @@ export default function ProposalsManagementPage() {
   const [editingProposal, setEditingProposal] = useState<Proposal | null>(null);
   const { showSuccess, showError } = useToastStore();
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
       const [proposalsData, statsData] = await Promise.all([
@@ -49,13 +44,17 @@ export default function ProposalsManagementPage() {
         ).values()
       );
       setProjects(uniqueProjects);
-    } catch (error: any) {
+    } catch (error: unknown) {
       showError('프로포즈 데이터를 불러오는데 실패했습니다.');
       console.error('Error loading proposals:', error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [showError]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleDelete = async (id: string) => {
     if (!confirm('이 프로포즈를 삭제하시겠습니까?')) {
@@ -66,19 +65,9 @@ export default function ProposalsManagementPage() {
       await proposalsApi.delete(id);
       showSuccess('프로포즈가 삭제되었습니다.');
       loadData();
-    } catch (error: any) {
-      showError(error.response?.data?.message || '프로포즈 삭제에 실패했습니다.');
-    }
-  };
-
-  const handleToggleStatus = async (proposal: Proposal) => {
-    try {
-      const newStatus = proposal.status === 'enabled' ? 'disabled' : 'enabled';
-      await proposalsApi.update(proposal.id, { status: newStatus });
-      showSuccess(`프로포즈가 ${newStatus === 'enabled' ? '활성화' : '비활성화'}되었습니다.`);
-      loadData();
-    } catch (error: any) {
-      showError(error.response?.data?.message || '상태 변경에 실패했습니다.');
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      showError(err.response?.data?.message || '프로포즈 삭제에 실패했습니다.');
     }
   };
 
@@ -365,7 +354,7 @@ export default function ProposalsManagementPage() {
                 <div className="flex-1">
                   <h4 className="text-lg font-semibold text-gray-800 mb-3">{proposal.name}</h4>
                   <p className="text-sm text-gray-600 mb-2">{proposal.message}</p>
-                  <div className="space-y-1 text-sm text-gray-600">
+                  <div className="space-y-2 text-sm text-gray-600">
                     <p>
                       <strong>프로젝트:</strong>{' '}
                       {proposal.project?.name || 'N/A'}
@@ -389,37 +378,54 @@ export default function ProposalsManagementPage() {
                 </div>
 
                 {/* 액션 버튼 */}
-                <div className="flex flex-col gap-2 min-w-[120px]">
-                  <Button
-                    onClick={() => handleToggleStatus(proposal)}
-                    className={cn(
-                      'text-white text-sm',
-                      proposal.status === 'enabled'
-                        ? 'bg-yellow-500 hover:bg-yellow-600'
-                        : 'bg-green-500 hover:bg-green-600'
-                    )}
-                  >
-                    <i className={cn(
-                      'mr-2',
-                      proposal.status === 'enabled' ? 'fas fa-ban' : 'fas fa-check'
-                    )}></i>
-                    {proposal.status === 'enabled' ? '비활성화' : '활성화'}
-                  </Button>
+                <div className="flex flex-col gap-2 min-w-[140px]">
+                  {/* 미리보기 - 보라색-파란색 그라데이션 */}
                   <Button
                     onClick={() => setViewingProposal(proposal)}
-                    className="bg-purple-500 hover:bg-purple-600 text-white text-sm"
+                    className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white text-sm rounded-lg"
                   >
                     <i className="fas fa-eye mr-2"></i>미리보기
                   </Button>
+
+                  {/* 사진 다운로드 - 어두운 회색 */}
+                  {proposal.image && (
+                    <Button
+                      onClick={() => {
+                        const imageUrl = `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'}${proposal.image}`;
+                        const link = document.createElement('a');
+                        link.href = imageUrl;
+                        link.download = `${proposal.name}_image.jpg`;
+                        link.click();
+                      }}
+                      className="bg-gray-700 hover:bg-gray-800 text-white text-sm rounded-lg"
+                    >
+                      <i className="fas fa-download mr-2"></i>사진 다운로드
+                    </Button>
+                  )}
+
+                  {/* 다운로드 QR 보기 - 청록색 */}
+                  <Button
+                    onClick={() => {
+                      // TODO: Implement QR code view for proposal
+                      showError('QR 코드 기능은 곧 추가될 예정입니다.');
+                    }}
+                    className="bg-teal-500 hover:bg-teal-600 text-white text-sm rounded-lg"
+                  >
+                    <i className="fas fa-qrcode mr-2"></i>다운로드 QR 보기
+                  </Button>
+
+                  {/* 수정 - 노란색 배경, 검은색 텍스트 */}
                   <Button
                     onClick={() => setEditingProposal(proposal)}
-                    className="bg-blue-500 hover:bg-blue-600 text-white text-sm"
+                    className="bg-yellow-400 hover:bg-yellow-500 text-black text-sm rounded-lg font-semibold"
                   >
                     <i className="fas fa-edit mr-2"></i>수정
                   </Button>
+
+                  {/* 삭제 - 빨간색 */}
                   <Button
                     onClick={() => handleDelete(proposal.id)}
-                    className="bg-red-500 hover:bg-red-600 text-white text-sm"
+                    className="bg-red-500 hover:bg-red-600 text-white text-sm rounded-lg"
                   >
                     <i className="fas fa-trash mr-2"></i>삭제
                   </Button>
