@@ -21,6 +21,7 @@ interface Kiosk {
   todayUsers: number;
   todayRevenue: number;
   errorReason?: string;
+  projectId?: string;
   project?: string;
 }
 
@@ -77,6 +78,7 @@ function transformKiosk(apiKiosk: ApiKiosk): Kiosk {
     todayUsers: apiKiosk.todayUsers || 0,
     todayRevenue: apiKiosk.todayRevenue || 0,
     errorReason: apiKiosk.errorReason,
+    projectId: apiKiosk.projectId,
     project: apiKiosk.project?.name,
   };
 }

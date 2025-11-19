@@ -1,16 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { apiClient } from '@/lib/api/client';
 import { useToastStore } from '@/lib/store/toastStore';
-
-interface Project {
-  id: string;
-  name: string;
-}
+import { ProjectSelect } from '@/components/projects/ProjectSelect';
 
 interface AddKioskModalProps {
   onClose: () => void;
@@ -27,27 +23,8 @@ export function AddKioskModal({ onClose, onSuccess }: AddKioskModalProps) {
     serialNumber: '',
     description: '',
   });
-  const [projects, setProjects] = useState<Project[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const { showSuccess, showError } = useToastStore();
-
-  useEffect(() => {
-    // Load projects
-    const loadProjects = async () => {
-      try {
-        const response = await apiClient.get('/projects');
-        setProjects(response.data || []);
-      } catch (error) {
-        console.error('Failed to load projects:', error);
-        showError('프로젝트 목록을 불러오는데 실패했습니다.');
-      } finally {
-        setIsLoadingProjects(false);
-      }
-    };
-
-    loadProjects();
-  }, [showError]);
 
   // IP 주소 마스킹 함수
   const formatIPAddress = (value: string): string => {
@@ -188,20 +165,13 @@ export function AddKioskModal({ onClose, onSuccess }: AddKioskModalProps) {
               <label className="block text-sm font-semibold text-gray-800 mb-2">
                 프로젝트 *
               </label>
-              <select
+              <ProjectSelect
                 value={formData.projectId}
-                onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
+                onChange={(value) => setFormData({ ...formData, projectId: value })}
+                placeholder="프로젝트 선택"
                 required
-                disabled={isLoadingProjects}
-                className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
-              >
-                <option value="">프로젝트 선택</option>
-                {projects.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))}
-              </select>
+                className="w-full"
+              />
             </div>
 
             <div>
@@ -228,7 +198,7 @@ export function AddKioskModal({ onClose, onSuccess }: AddKioskModalProps) {
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting || isLoadingProjects}
+                disabled={isSubmitting}
                 className="bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white"
               >
                 {isSubmitting ? '저장 중...' : '저장'}

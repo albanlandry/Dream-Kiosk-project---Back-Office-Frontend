@@ -1,15 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ProjectSelect } from '@/components/projects/ProjectSelect';
+import { kiosksApi } from '@/lib/api/kiosks';
+import { useToastStore } from '@/lib/store/toastStore';
 
 interface Kiosk {
   id: string;
   name: string;
   location: string;
   ip: string;
+  projectId?: string;
   project?: string;
 }
 
@@ -23,7 +27,7 @@ export function KioskSettingsModal({ kiosk, onClose }: KioskSettingsModalProps) 
     name: kiosk.name,
     location: kiosk.location,
     ip: kiosk.ip,
-    project: kiosk.project || '',
+    projectId: kiosk.projectId || '',
     cameraSensitivity: 7,
     cardReaderTimeout: 15,
     printerPaperCheck: true,
@@ -32,12 +36,45 @@ export function KioskSettingsModal({ kiosk, onClose }: KioskSettingsModalProps) 
     restartTime: '03:00',
     logLevel: 'INFO',
   });
+  const { showSuccess, showError } = useToastStore();
+
+  // Load kiosk details to get projectId if not available
+  useEffect(() => {
+    const loadKioskDetails = async () => {
+      if (!kiosk.projectId && kiosk.id) {
+        try {
+          const kioskDetails = await kiosksApi.getById(kiosk.id);
+          if (kioskDetails.projectId) {
+            setFormData((prev) => ({
+              ...prev,
+              projectId: kioskDetails.projectId || '',
+            }));
+          }
+        } catch (error) {
+          console.error('Failed to load kiosk details:', error);
+        }
+      }
+    };
+    loadKioskDetails();
+  }, [kiosk.id, kiosk.projectId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: API call to save settings
-    alert('설정이 저장되었습니다.');
-    onClose();
+    try {
+      // Update kiosk basic info
+      await kiosksApi.update(kiosk.id, {
+        name: formData.name,
+        location: formData.location,
+        ipAddress: formData.ip,
+        projectId: formData.projectId || undefined,
+      });
+      
+      // TODO: Save hardware and system settings when API is ready
+      showSuccess('설정이 저장되었습니다.');
+      onClose();
+    } catch (error: any) {
+      showError(error.response?.data?.message || '설정 저장에 실패했습니다.');
+    }
   };
 
   return (
@@ -105,18 +142,12 @@ export function KioskSettingsModal({ kiosk, onClose }: KioskSettingsModalProps) 
                   <label className="block text-sm font-semibold text-gray-800 mb-2">
                     프로젝트
                   </label>
-                  <select
-                    value={formData.project}
-                    onChange={(e) =>
-                      setFormData({ ...formData, project: e.target.value })
-                    }
-                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
-                  >
-                    <option value="">프로젝트 선택</option>
-                    <option value="강남점 프로젝트">강남점 프로젝트</option>
-                    <option value="홍대점 프로젝트">홍대점 프로젝트</option>
-                    <option value="부산점 프로젝트">부산점 프로젝트</option>
-                  </select>
+                  <ProjectSelect
+                    value={formData.projectId}
+                    onChange={(value) => setFormData({ ...formData, projectId: value })}
+                    placeholder="프로젝트 선택"
+                    className="w-full"
+                  />
                 </div>
               </div>
             </div>
