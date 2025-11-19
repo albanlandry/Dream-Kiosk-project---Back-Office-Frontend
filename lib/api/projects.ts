@@ -17,15 +17,74 @@ export interface Project {
 }
 
 export interface ProjectResponse {
-  data: Project | Project[];
+  data: Project | Project[] | {
+    data: Project[];
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+      hasMore: boolean;
+    };
+  };
   _links?: Record<string, { href: string; method: string }>;
 }
 
+export interface ProjectListResponse {
+  data: Project[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasMore: boolean;
+  };
+}
+
 export const projectsApi = {
-  getAll: async (): Promise<Project[]> => {
-    const response = await apiClient.get<ProjectResponse>('/projects');
+  getAll: async (params?: {
+    search?: string;
+    page?: number;
+    limit?: number;
+    fields?: string;
+  }): Promise<Project[]> => {
+    const response = await apiClient.get<ProjectResponse>('/projects', { params });
     const data = response.data?.data || response.data;
+    
+    // Handle paginated response
+    if (data && typeof data === 'object' && 'data' in data && 'pagination' in data) {
+      return (data as ProjectListResponse).data;
+    }
+    
     return Array.isArray(data) ? data : [];
+  },
+
+  getAllPaginated: async (params?: {
+    search?: string;
+    page?: number;
+    limit?: number;
+    fields?: string;
+  }): Promise<ProjectListResponse> => {
+    const response = await apiClient.get<ProjectResponse>('/projects', { params });
+    const data = response.data?.data || response.data;
+    
+    // Handle paginated response
+    if (data && typeof data === 'object' && 'data' in data && 'pagination' in data) {
+      return data as ProjectListResponse;
+    }
+    
+    // If not paginated, wrap it
+    const projects = Array.isArray(data) ? data : [];
+    return {
+      data: projects,
+      pagination: {
+        total: projects.length,
+        page: 1,
+        limit: projects.length,
+        totalPages: 1,
+        hasMore: false,
+      },
+    };
   },
 
   getById: async (id: string): Promise<Project> => {

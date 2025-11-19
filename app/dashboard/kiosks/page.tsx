@@ -3,11 +3,13 @@
 import { Header } from '@/components/layout/Header';
 import { StatCard } from '@/components/ui/stat-card';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { KioskItem } from '@/components/kiosks/KioskItem';
 import { KioskMonitoringModal } from '@/components/kiosks/KioskMonitoringModal';
 import { KioskSettingsModal } from '@/components/kiosks/KioskSettingsModal';
 import { AddKioskModal } from '@/components/kiosks/AddKioskModal';
+import { kiosksApi, type Kiosk as ApiKiosk } from '@/lib/api/kiosks';
+import { useToastStore } from '@/lib/store/toastStore';
 
 interface Kiosk {
   id: string;
@@ -22,61 +24,91 @@ interface Kiosk {
   project?: string;
 }
 
-const mockKiosks: Kiosk[] = [
-  {
-    id: 'kiosk1',
-    name: '키오스크 #1',
-    location: '강남점 - 1층 로비',
-    ip: '192.168.1.101',
-    status: 'online',
-    lastConnection: '2분 전',
-    todayUsers: 45,
-    todayRevenue: 675000,
-    project: '강남점 프로젝트',
-  },
-  {
-    id: 'kiosk2',
-    name: '키오스크 #2',
-    location: '강남점 - 2층 로비',
-    ip: '192.168.1.102',
-    status: 'online',
-    lastConnection: '1분 전',
-    todayUsers: 38,
-    todayRevenue: 570000,
-    project: '강남점 프로젝트',
-  },
-  {
-    id: 'kiosk7',
-    name: '키오스크 #7',
-    location: '홍대점 - 1층 로비',
-    ip: '192.168.2.107',
-    status: 'warning',
-    lastConnection: '5분 전',
-    todayUsers: 12,
-    todayRevenue: 180000,
-    errorReason: '카드 리더기 오류',
-    project: '홍대점 프로젝트',
-  },
-  {
-    id: 'kiosk12',
-    name: '키오스크 #12',
-    location: '부산점 - 1층 로비',
-    ip: '192.168.3.112',
-    status: 'offline',
-    lastConnection: '2시간 전',
-    todayUsers: 0,
-    todayRevenue: 0,
-    errorReason: '네트워크 연결 끊김',
-    project: '부산점 프로젝트',
-  },
-];
+// Transform API kiosk to UI kiosk format
+function transformKiosk(apiKiosk: ApiKiosk): Kiosk {
+  // Determine status based on kiosk data
+  let status: 'online' | 'warning' | 'offline' = 'offline';
+  if (apiKiosk.status === 'online') {
+    status = 'online';
+  } else if (apiKiosk.status === 'warning') {
+    status = 'warning';
+  } else {
+    status = 'offline';
+  }
+
+  // Calculate last connection time from timestamp
+  const formatLastConnection = (lastConnection?: string | Date): string => {
+    if (!lastConnection) {
+      return '연결 기록 없음';
+    }
+    
+    const lastConnDate = typeof lastConnection === 'string' 
+      ? new Date(lastConnection) 
+      : lastConnection;
+    
+    if (isNaN(lastConnDate.getTime())) {
+      return '연결 기록 없음';
+    }
+
+    const now = new Date();
+    const diffMs = now.getTime() - lastConnDate.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) {
+      return '방금 전';
+    } else if (diffMins < 60) {
+      return `${diffMins}분 전`;
+    } else if (diffHours < 24) {
+      return `${diffHours}시간 전`;
+    } else {
+      return `${diffDays}일 전`;
+    }
+  };
+
+  return {
+    id: apiKiosk.id,
+    name: apiKiosk.name,
+    location: apiKiosk.location,
+    ip: apiKiosk.ipAddress,
+    status,
+    lastConnection: formatLastConnection(apiKiosk.lastConnection),
+    todayUsers: apiKiosk.todayUsers || 0,
+    todayRevenue: apiKiosk.todayRevenue || 0,
+    errorReason: apiKiosk.errorReason,
+    project: apiKiosk.project?.name,
+  };
+}
 
 export default function KioskManagementPage() {
-  const [kiosks] = useState<Kiosk[]>(mockKiosks);
+  const [kiosks, setKiosks] = useState<Kiosk[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { showSuccess, showError } = useToastStore();
   const [selectedKiosk, setSelectedKiosk] = useState<Kiosk | null>(null);
   const [showMonitoringModal, setShowMonitoringModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+
+  // Load kiosks from database on mount
+  const loadKiosks = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const apiKiosks = await kiosksApi.getAll();
+      const transformedKiosks = apiKiosks.map(transformKiosk);
+      setKiosks(transformedKiosks);
+    } catch (error: unknown) {
+      console.error('Failed to load kiosks:', error);
+      showError('키오스크를 불러오는데 실패했습니다.');
+      setKiosks([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [showError]);
+
+  useEffect(() => {
+    loadKiosks();
+  }, [loadKiosks]);
 
   const totalKiosks = kiosks.length;
   const onlineKiosks = kiosks.filter((k) => k.status === 'online').length;
@@ -164,18 +196,30 @@ export default function KioskManagementPage() {
         </div>
 
         {/* 키오스크 목록 */}
-        <div className="space-y-6">
-          {kiosks.map((kiosk) => (
-            <KioskItem
-              key={kiosk.id}
-              kiosk={kiosk}
-              onMonitoring={() => handleMonitoring(kiosk)}
-              onSettings={() => handleSettings(kiosk)}
-              onRestart={() => handleRestart(kiosk)}
-              onRepair={() => handleRepair(kiosk)}
-            />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="text-center py-12">
+            <i className="fas fa-spinner fa-spin text-4xl text-gray-400"></i>
+            <p className="mt-4 text-gray-600">로딩 중...</p>
+          </div>
+        ) : kiosks.length === 0 ? (
+          <div className="bg-white rounded-xl p-12 text-center shadow-sm">
+            <i className="fas fa-desktop text-6xl text-gray-300 mb-4"></i>
+            <p className="text-gray-600 text-lg">키오스크가 없습니다.</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {kiosks.map((kiosk) => (
+              <KioskItem
+                key={kiosk.id}
+                kiosk={kiosk}
+                onMonitoring={() => handleMonitoring(kiosk)}
+                onSettings={() => handleSettings(kiosk)}
+                onRestart={() => handleRestart(kiosk)}
+                onRepair={() => handleRepair(kiosk)}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Modals */}
@@ -202,9 +246,9 @@ export default function KioskManagementPage() {
       {showAddModal && (
         <AddKioskModal
           onClose={() => setShowAddModal(false)}
-          onSuccess={() => {
+          onSuccess={async () => {
+            await loadKiosks();
             setShowAddModal(false);
-            // TODO: Refresh kiosk list
           }}
         />
       )}

@@ -1,17 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Proposal, proposalsApi } from '@/lib/api/proposals';
-import { apiClient } from '@/lib/api/client';
+import { projectsApi, type Project as ApiProject } from '@/lib/api/projects';
 import { useToastStore } from '@/lib/store/toastStore';
-
-interface Project {
-  id: string;
-  name: string;
-}
+import { SearchableSelect, type SearchableSelectOption } from '@/components/ui/searchable-select';
 
 interface EditProposalModalProps {
   proposal: Proposal;
@@ -33,9 +29,12 @@ export function EditProposalModal({
     displayEnd: proposal.displayEnd.split('T')[0] + 'T' + (proposal.displayEnd.split('T')[1] || '00:00'),
     status: proposal.status,
   });
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectOptions, setProjectOptions] = useState<SearchableSelectOption[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoadingProjects, setIsLoadingProjects] = useState(true);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+  const [projectSearchTerm, setProjectSearchTerm] = useState('');
+  const [projectPage, setProjectPage] = useState(1);
+  const [hasMoreProjects, setHasMoreProjects] = useState(true);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(
     proposal.image
@@ -45,29 +44,58 @@ export function EditProposalModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { showSuccess, showError } = useToastStore();
 
-  useEffect(() => {
-    loadProjects();
-  }, []);
-
-  const loadProjects = async () => {
+  // Load projects with pagination and search
+  const loadProjects = useCallback(async (page: number = 1, search: string = '', append: boolean = false) => {
     try {
       setIsLoadingProjects(true);
-      const response = await apiClient.get('/projects');
-      const responseData = response.data?.data || response.data;
-      const projectsList = Array.isArray(responseData) ? responseData : [];
-      setProjects(
-        projectsList.map((p: any) => ({
-          id: p.id,
-          name: p.name,
-        })),
-      );
-    } catch (error: any) {
+      const result = await projectsApi.getAllPaginated({
+        page,
+        limit: 20,
+        search: search || undefined,
+        fields: 'id,name,location',
+      });
+
+      const newOptions: SearchableSelectOption[] = result.data.map((p: ApiProject) => ({
+        id: p.id,
+        label: p.name,
+        value: p.id,
+      }));
+
+      if (append) {
+        setProjectOptions((prev) => [...prev, ...newOptions]);
+      } else {
+        setProjectOptions(newOptions);
+      }
+
+      setHasMoreProjects(result.pagination.hasMore);
+    } catch (error: unknown) {
       console.error('Failed to load projects:', error);
       showError('프로젝트 목록을 불러오는데 실패했습니다.');
     } finally {
       setIsLoadingProjects(false);
     }
-  };
+  }, [showError]);
+
+  // Initial load
+  useEffect(() => {
+    loadProjects(1, '', false);
+  }, [loadProjects]);
+
+  // Handle project search
+  const handleProjectSearch = useCallback((searchTerm: string) => {
+    setProjectSearchTerm(searchTerm);
+    setProjectPage(1);
+    loadProjects(1, searchTerm, false);
+  }, [loadProjects]);
+
+  // Handle load more projects
+  const handleLoadMoreProjects = useCallback(() => {
+    if (!isLoadingProjects && hasMoreProjects) {
+      const nextPage = projectPage + 1;
+      setProjectPage(nextPage);
+      loadProjects(nextPage, projectSearchTerm, true);
+    }
+  }, [isLoadingProjects, hasMoreProjects, projectPage, projectSearchTerm, loadProjects]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -189,20 +217,21 @@ export function EditProposalModal({
                 <label className="block text-sm font-semibold text-gray-800 mb-2">
                   프로젝트 *
                 </label>
-                <select
+                <SearchableSelect
+                  options={projectOptions}
                   value={formData.projectId}
-                  onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
-                  required
+                  onChange={(value) => setFormData({ ...formData, projectId: value })}
+                  placeholder="프로젝트 선택"
+                  searchPlaceholder="프로젝트 검색..."
                   disabled={isLoadingProjects}
-                  className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
-                >
-                  <option value="">프로젝트 선택</option>
-                  {projects.map((project) => (
-                    <option key={project.id} value={project.id}>
-                      {project.name}
-                    </option>
-                  ))}
-                </select>
+                  required
+                  onSearch={handleProjectSearch}
+                  onLoadMore={handleLoadMoreProjects}
+                  hasMore={hasMoreProjects}
+                  isLoading={isLoadingProjects}
+                  emptyMessage="프로젝트가 없습니다."
+                  className="w-full"
+                />
               </div>
 
               <div>
