@@ -65,26 +65,48 @@ export const projectsApi = {
     limit?: number;
     fields?: string;
   }): Promise<ProjectListResponse> => {
-    const response = await apiClient.get<ProjectResponse>('/projects', { params });
-    const data = response.data?.data || response.data;
-    
-    // Handle paginated response
-    if (data && typeof data === 'object' && 'data' in data && 'pagination' in data) {
-      return data as ProjectListResponse;
+    try {
+      const response = await apiClient.get<ProjectResponse>('/projects', { params });
+      
+      // Handle HATEOAS wrapped response: { data: {...}, _links: {...} }
+      const responseData = response.data?.data || response.data;
+      
+      // Handle paginated response
+      if (
+        responseData &&
+        typeof responseData === 'object' &&
+        'data' in responseData &&
+        'pagination' in responseData
+      ) {
+        return responseData as ProjectListResponse;
+      }
+      
+      // If not paginated, wrap it
+      const projects = Array.isArray(responseData) ? responseData : [];
+      return {
+        data: projects,
+        pagination: {
+          total: projects.length,
+          page: params?.page || 1,
+          limit: params?.limit || projects.length,
+          totalPages: 1,
+          hasMore: false,
+        },
+      };
+    } catch (error: any) {
+      console.error('Error in getAllPaginated:', error);
+      // Return empty result on error
+      return {
+        data: [],
+        pagination: {
+          total: 0,
+          page: params?.page || 1,
+          limit: params?.limit || 20,
+          totalPages: 0,
+          hasMore: false,
+        },
+      };
     }
-    
-    // If not paginated, wrap it
-    const projects = Array.isArray(data) ? data : [];
-    return {
-      data: projects,
-      pagination: {
-        total: projects.length,
-        page: 1,
-        limit: projects.length,
-        totalPages: 1,
-        hasMore: false,
-      },
-    };
   },
 
   getById: async (id: string): Promise<Project> => {
