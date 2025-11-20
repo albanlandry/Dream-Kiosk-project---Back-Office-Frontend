@@ -73,5 +73,20 @@ export const kiosksApi = {
   delete: async (id: string): Promise<void> => {
     await apiClient.delete(`/kiosks/${id}`);
   },
+
+  generateTestToken: async (id: string): Promise<{
+    token: string;
+    expiresIn: number;
+    kioskId: string;
+  }> => {
+    const response = await apiClient.post<{
+      data: {
+        token: string;
+        expiresIn: number;
+        kioskId: string;
+      };
+    }>(`/kiosks/${id}/generate-token`);
+    return response.data?.data || response.data;
+  },
 };
 

@@ -245,6 +245,84 @@ export default function KioskEmulatorPage() {
       />
       <div className="p-8 min-h-screen">
         <div className="max-w-6xl mx-auto space-y-6">
+          {/* JWT Token Generator Section */}
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">
+              테스트용 JWT 토큰 생성
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 mb-2">
+                  키오스크 선택
+                </label>
+                <select
+                  value={selectedKioskId}
+                  onChange={(e) => setSelectedKioskId(e.target.value)}
+                  className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
+                >
+                  <option value="">키오스크 선택</option>
+                  {kiosks.map((kiosk) => (
+                    <option key={kiosk.id} value={kiosk.id}>
+                      {kiosk.name} - {kiosk.location}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <Button
+                onClick={async () => {
+                  if (!selectedKioskId) {
+                    showError('키오스크를 선택해주세요.');
+                    return;
+                  }
+                  try {
+                    const result = await kiosksApi.generateTestToken(
+                      selectedKioskId,
+                    );
+                    setKioskToken(result.token);
+                    showSuccess(
+                      `JWT 토큰이 생성되었습니다. (만료: ${Math.floor(result.expiresIn / 3600)}시간)`,
+                    );
+                  } catch (error: any) {
+                    showError(
+                      error.response?.data?.message ||
+                        'JWT 토큰 생성에 실패했습니다.',
+                    );
+                  }
+                }}
+                disabled={!selectedKioskId}
+                className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
+              >
+                <i className="fas fa-key mr-2"></i>
+                JWT 토큰 생성
+              </Button>
+              {kioskToken && (
+                <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                  <label className="block text-sm font-semibold text-gray-800 mb-2">
+                    생성된 토큰:
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="text"
+                      value={kioskToken}
+                      readOnly
+                      className="flex-1 font-mono text-xs"
+                    />
+                    <Button
+                      onClick={() => {
+                        navigator.clipboard.writeText(kioskToken);
+                        showSuccess('토큰이 클립보드에 복사되었습니다.');
+                      }}
+                      className="bg-blue-500 hover:bg-blue-600 text-white"
+                    >
+                      <i className="fas fa-copy mr-2"></i>
+                      복사
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Connection Panel */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">
