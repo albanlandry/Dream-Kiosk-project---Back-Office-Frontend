@@ -22,6 +22,7 @@ const navigation = [
   { name: '결제 관리', href: '/dashboard/payments', icon: 'fas fa-credit-card' },
   { name: '사용자 관리', href: '/dashboard/users', icon: 'fas fa-users' },
   { name: '키오스크 관리', href: '/dashboard/kiosks', icon: 'fas fa-desktop' },
+  { name: '키오스크 에뮬레이터', href: '/dashboard/kiosk-emulator', icon: 'fas fa-flask' },
   { name: '분석 & 리포트', href: '/dashboard/analytics', icon: 'fas fa-chart-bar' },
   { name: '프로젝트 관리', href: '/dashboard/projects', icon: 'fas fa-project-diagram' },
   { name: '스케줄 관리', href: '/dashboard/schedule', icon: 'fas fa-calendar-alt' },
