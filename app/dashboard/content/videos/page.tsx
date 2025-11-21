@@ -8,6 +8,7 @@ import { apiClient } from '@/lib/api/client';
 import { useToastStore } from '@/lib/store/toastStore';
 import { UploadVideoModal } from '@/components/content/UploadVideoModal';
 import { cn } from '@/lib/utils/cn';
+import { getResourceThumbnailUrl } from '@/lib/utils/thumbnail';
 
 interface Video {
   id: string;
@@ -237,23 +238,24 @@ export default function VideosManagementPage() {
                 </div>
                 <div className="grid grid-cols-[200px_1fr_auto] gap-6">
                   <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden">
-                    {video.thumbnailUrl ? (
-                      <img
-                        src={video.thumbnailUrl.startsWith('http') 
-                          ? video.thumbnailUrl 
-                          : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'}${video.thumbnailUrl}`}
-                        alt={video.userName}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <i className="fas fa-video text-gray-400 text-4xl"></i>
-                      </div>
-                    )}
+                    {(() => {
+                      const thumbnailUrl = getResourceThumbnailUrl(video.id, 'video', video.thumbnailUrl);
+                      return thumbnailUrl ? (
+                        <img
+                          src={thumbnailUrl}
+                          alt={video.userName}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <i className="fas fa-video text-gray-400 text-4xl"></i>
+                        </div>
+                      );
+                    })()}
                     <div className="absolute top-2 right-2">
                     {getStatusBadge(video.status)}
                     </div>

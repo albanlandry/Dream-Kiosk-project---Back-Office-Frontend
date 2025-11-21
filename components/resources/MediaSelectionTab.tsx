@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils/cn';
+import { getResourceThumbnailUrl } from '@/lib/utils/thumbnail';
 
 export interface MediaItem {
   id: string;
@@ -177,30 +178,37 @@ export function MediaSelectionTab({
                     className="absolute top-2 left-2 z-10 w-4 h-4"
                   />
                   <div className="aspect-video bg-gray-100">
-                    {item.thumbnail ? (
-                      <img
-                        src={item.thumbnail}
-                        alt={item.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <i
-                          className={cn(
-                            'text-gray-400 text-2xl',
-                            item.type === 'image' 
-                              ? 'fas fa-image' 
-                              : item.type === 'video' 
-                              ? 'fas fa-video' 
-                              : 'fas fa-paw'
-                          )}
-                        ></i>
-                      </div>
-                    )}
+                    {(() => {
+                      const thumbnailUrl = getResourceThumbnailUrl(
+                        item.id,
+                        item.type,
+                        item.thumbnail,
+                      );
+                      return thumbnailUrl ? (
+                        <img
+                          src={thumbnailUrl}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <i
+                            className={cn(
+                              'text-gray-400 text-2xl',
+                              item.type === 'image' 
+                                ? 'fas fa-image' 
+                                : item.type === 'video' 
+                                ? 'fas fa-video' 
+                                : 'fas fa-paw'
+                            )}
+                          ></i>
+                        </div>
+                      );
+                    })()}
                   </div>
                   <div className="p-2">
                     <p className="text-xs font-medium text-gray-800 truncate">

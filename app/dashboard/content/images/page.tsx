@@ -8,6 +8,7 @@ import { apiClient } from '@/lib/api/client';
 import { useToastStore } from '@/lib/store/toastStore';
 import { UploadImageModal } from '@/components/content/UploadImageModal';
 import { cn } from '@/lib/utils/cn';
+import { getResourceThumbnailUrl } from '@/lib/utils/thumbnail';
 
 interface Image {
   id: string;
@@ -271,22 +272,26 @@ export default function ImagesManagementPage() {
                   />
                 </div>
                 <div className="relative aspect-video bg-gray-100 rounded-lg mb-3 overflow-hidden">
-                  {image.id ? (
-                    <img
-                      src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'}/api/v1/images/${image.id}/thumbnail`}
-                      alt={image.originalName}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        // Fallback to original image if thumbnail fails
-                        const target = e.target as HTMLImageElement;
-                        target.src = `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'}/api/v1/images/${image.id}`;
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <i className="fas fa-image text-gray-400 text-4xl"></i>
-                    </div>
-                  )}
+                  {(() => {
+                    const thumbnailUrl = getResourceThumbnailUrl(image.id, 'image', image.thumbnailPath);
+                    return thumbnailUrl ? (
+                      <img
+                        src={thumbnailUrl}
+                        alt={image.originalName}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Fallback to original image if thumbnail fails
+                          const target = e.target as HTMLImageElement;
+                          const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
+                          target.src = `${apiUrl}/api/v1/images/${image.id}/file`;
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <i className="fas fa-image text-gray-400 text-4xl"></i>
+                      </div>
+                    );
+                  })()}
                   <div
                     className={cn(
                       'absolute top-2 right-2 px-2 py-1 rounded text-xs font-semibold',

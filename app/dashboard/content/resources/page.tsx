@@ -11,6 +11,7 @@ import { ResourceTabs } from '@/components/resources/ResourceTabs';
 import { MediaViewModal } from '@/components/resources/MediaViewModal';
 import { ResourceFormModal } from '@/components/resources/ResourceFormModal';
 import { MediaItem, Pagination } from '@/components/resources/MediaSelectionTab';
+import { getResourceThumbnailUrl } from '@/lib/utils/thumbnail';
 
 export default function ResourcesManagementPage() {
   const router = useRouter();
@@ -239,20 +240,12 @@ export default function ResourcesManagementPage() {
           updatedAt: new Date(item.updatedAt),
         };
 
-        // For images, construct thumbnail URL if needed
-        if (baseItem.type === 'image' && baseItem.thumbnail && !baseItem.thumbnail.startsWith('http')) {
-          baseItem.thumbnail = `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'}/api/v1/images/${baseItem.id}/thumbnail`;
-        }
-
-        // For videos, handle thumbnail URL
-        if (baseItem.type === 'video' && baseItem.thumbnail && !baseItem.thumbnail.startsWith('http')) {
-          baseItem.thumbnail = `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'}${baseItem.thumbnail}`;
-        }
-
-        // For animals, handle thumbnail URL
-        if (baseItem.type === 'animal' && baseItem.thumbnail && !baseItem.thumbnail.startsWith('http')) {
-          baseItem.thumbnail = `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'}${baseItem.thumbnail}`;
-        }
+        // Use thumbnail API for all resource types
+        baseItem.thumbnail = getResourceThumbnailUrl(
+          baseItem.id,
+          baseItem.type,
+          baseItem.thumbnail,
+        ) || undefined;
 
         return baseItem;
       });

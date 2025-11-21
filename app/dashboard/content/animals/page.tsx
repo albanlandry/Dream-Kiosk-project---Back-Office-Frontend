@@ -9,6 +9,7 @@ import { useToastStore } from '@/lib/store/toastStore';
 import { AnimalModal } from '@/components/content/AnimalModal';
 import { Animal } from '@/lib/api/animals';
 import { cn } from '@/lib/utils/cn';
+import { getResourceThumbnailUrl } from '@/lib/utils/thumbnail';
 
 export default function AnimalsManagementPage() {
   const [animals, setAnimals] = useState<Animal[]>([]);
@@ -173,21 +174,24 @@ export default function AnimalsManagementPage() {
                 >
                   {/* 썸네일 */}
                   <div className="relative aspect-square bg-gray-100 rounded-lg mb-3 overflow-hidden">
-                    {animal.thumbnailUrl ? (
-                      <img
-                        src={animal.thumbnailUrl}
-                        alt={animal.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <i className="fas fa-paw text-gray-400 text-4xl"></i>
-                      </div>
-                    )}
+                    {(() => {
+                      const thumbnailUrl = getResourceThumbnailUrl(animal.id, 'animal', animal.thumbnailUrl);
+                      return thumbnailUrl ? (
+                        <img
+                          src={thumbnailUrl}
+                          alt={animal.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <i className="fas fa-paw text-gray-400 text-4xl"></i>
+                        </div>
+                      );
+                    })()}
                     <div
                       className={cn(
                         'absolute top-2 right-2 px-2 py-1 rounded text-xs font-semibold',

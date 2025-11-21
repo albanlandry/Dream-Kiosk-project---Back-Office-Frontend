@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/cn';
+import { getResourceThumbnailUrl } from '@/lib/utils/thumbnail';
 
 export interface Resource {
   id: string;
@@ -134,64 +135,81 @@ export function ResourceList({
                   )}
                   {/* 리소스에 속한 미디어 미리보기 */}
                   <div className="mt-2 flex gap-2 flex-wrap">
-                    {media.images.slice(0, 3).map((img) => (
-                      <div
-                        key={img.id}
-                        className="w-12 h-12 rounded border border-gray-200 overflow-hidden bg-gray-100"
-                      >
-                        {img.thumbnailPath ? (
-                          <img
-                            src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'}/api/v1/images/${img.id}/thumbnail`}
-                            alt={img.originalName}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <i className="fas fa-image text-gray-400"></i>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    {media.videos.slice(0, 3).map((vid) => (
-                      <div
-                        key={vid.id}
-                        className="w-12 h-12 rounded border border-gray-200 overflow-hidden bg-gray-100"
-                      >
-                        {vid.thumbnailUrl ? (
-                          <img
-                            src={vid.thumbnailUrl.startsWith('http') 
-                              ? vid.thumbnailUrl 
-                              : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'}${vid.thumbnailUrl}`}
-                            alt={vid.userName}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <i className="fas fa-video text-gray-400"></i>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    {media.animals.slice(0, 3).map((animal) => (
-                      <div
-                        key={animal.id}
-                        className="w-12 h-12 rounded border border-gray-200 overflow-hidden bg-gray-100"
-                      >
-                        {animal.thumbnailUrl ? (
-                          <img
-                            src={animal.thumbnailUrl.startsWith('http') 
-                              ? animal.thumbnailUrl 
-                              : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'}${animal.thumbnailUrl}`}
-                            alt={animal.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <i className="fas fa-paw text-gray-400"></i>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                    {media.images.slice(0, 3).map((img) => {
+                      const thumbnailUrl = getResourceThumbnailUrl(img.id, 'image', img.thumbnailPath);
+                      return (
+                        <div
+                          key={img.id}
+                          className="w-12 h-12 rounded border border-gray-200 overflow-hidden bg-gray-100"
+                        >
+                          {thumbnailUrl ? (
+                            <img
+                              src={thumbnailUrl}
+                              alt={img.originalName}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <i className="fas fa-image text-gray-400"></i>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {media.videos.slice(0, 3).map((vid) => {
+                      const thumbnailUrl = getResourceThumbnailUrl(vid.id, 'video', vid.thumbnailUrl);
+                      return (
+                        <div
+                          key={vid.id}
+                          className="w-12 h-12 rounded border border-gray-200 overflow-hidden bg-gray-100"
+                        >
+                          {thumbnailUrl ? (
+                            <img
+                              src={thumbnailUrl}
+                              alt={vid.userName}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <i className="fas fa-video text-gray-400"></i>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {media.animals.slice(0, 3).map((animal) => {
+                      const thumbnailUrl = getResourceThumbnailUrl(animal.id, 'animal', animal.thumbnailUrl);
+                      return (
+                        <div
+                          key={animal.id}
+                          className="w-12 h-12 rounded border border-gray-200 overflow-hidden bg-gray-100"
+                        >
+                          {thumbnailUrl ? (
+                            <img
+                              src={thumbnailUrl}
+                              alt={animal.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <i className="fas fa-paw text-gray-400"></i>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                     {(media.images.length + media.videos.length + media.animals.length) > 6 && (
                       <div className="w-12 h-12 rounded border border-gray-200 bg-gray-100 flex items-center justify-center text-xs text-gray-500">
                         +{media.images.length + media.videos.length + media.animals.length - 6}

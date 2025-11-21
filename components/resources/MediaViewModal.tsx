@@ -1,6 +1,7 @@
 'use client';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { getResourceThumbnailUrl } from '@/lib/utils/thumbnail';
 
 export interface Resource {
   id: string;
@@ -53,17 +54,24 @@ export function MediaViewModal({
                       className="border border-gray-200 rounded-lg overflow-hidden"
                     >
                       <div className="aspect-video bg-gray-100">
-                        {img.thumbnailPath ? (
-                          <img
-                            src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'}/api/v1/images/${img.id}/thumbnail`}
-                            alt={img.originalName}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <i className="fas fa-image text-gray-400 text-2xl"></i>
-                          </div>
-                        )}
+                        {(() => {
+                          const thumbnailUrl = getResourceThumbnailUrl(img.id, 'image', img.thumbnailPath);
+                          return thumbnailUrl ? (
+                            <img
+                              src={thumbnailUrl}
+                              alt={img.originalName}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <i className="fas fa-image text-gray-400 text-2xl"></i>
+                            </div>
+                          );
+                        })()}
                       </div>
                       <div className="p-2">
                         <p className="text-sm font-medium text-gray-800 truncate">
@@ -90,19 +98,24 @@ export function MediaViewModal({
                       className="border border-gray-200 rounded-lg overflow-hidden"
                     >
                       <div className="aspect-video bg-gray-100">
-                        {vid.thumbnailUrl ? (
-                          <img
-                            src={vid.thumbnailUrl.startsWith('http') 
-                              ? vid.thumbnailUrl 
-                              : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'}${vid.thumbnailUrl}`}
-                            alt={vid.userName}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <i className="fas fa-video text-gray-400 text-2xl"></i>
-                          </div>
-                        )}
+                        {(() => {
+                          const thumbnailUrl = getResourceThumbnailUrl(vid.id, 'video', vid.thumbnailUrl);
+                          return thumbnailUrl ? (
+                            <img
+                              src={thumbnailUrl}
+                              alt={vid.userName}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <i className="fas fa-video text-gray-400 text-2xl"></i>
+                            </div>
+                          );
+                        })()}
                       </div>
                       <div className="p-3">
                         <p className="text-sm font-medium text-gray-800">{vid.userName}</p>
@@ -127,19 +140,24 @@ export function MediaViewModal({
                       className="border border-gray-200 rounded-lg overflow-hidden"
                     >
                       <div className="aspect-video bg-gray-100">
-                        {animal.thumbnailUrl ? (
-                          <img
-                            src={animal.thumbnailUrl.startsWith('http') 
-                              ? animal.thumbnailUrl 
-                              : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'}${animal.thumbnailUrl}`}
-                            alt={animal.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <i className="fas fa-paw text-gray-400 text-2xl"></i>
-                          </div>
-                        )}
+                        {(() => {
+                          const thumbnailUrl = getResourceThumbnailUrl(animal.id, 'animal', animal.thumbnailUrl);
+                          return thumbnailUrl ? (
+                            <img
+                              src={thumbnailUrl}
+                              alt={animal.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <i className="fas fa-paw text-gray-400 text-2xl"></i>
+                            </div>
+                          );
+                        })()}
                       </div>
                       <div className="p-2">
                         <p className="text-sm font-medium text-gray-800 truncate">
