@@ -5,6 +5,7 @@ import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { kiosksApi } from '@/lib/api/kiosks';
+import { animalsApi, type Animal } from '@/lib/api/animals';
 import { KioskWebSocketClient } from '@/lib/api/websocket';
 import { useToastStore } from '@/lib/store/toastStore';
 import { cn } from '@/lib/utils/cn';
@@ -32,6 +33,7 @@ interface Kiosk {
 
 export default function KioskEmulatorPage() {
   const [kiosks, setKiosks] = useState<Kiosk[]>([]);
+  const [animals, setAnimals] = useState<Animal[]>([]);
   const [selectedKioskId, setSelectedKioskId] = useState<string>('');
   const [kioskToken, setKioskToken] = useState<string>('');
   const [wsClient, setWsClient] = useState<KioskWebSocketClient | null>(null);
@@ -43,6 +45,11 @@ export default function KioskEmulatorPage() {
   const [error, setError] = useState<string | null>(null);
   const { showSuccess, showError } = useToastStore();
   const wsClientRef = useRef<KioskWebSocketClient | null>(null);
+  
+  // Generate dummy animal IDs (valid UUIDs) for testing
+  const [dummyAnimalIds] = useState<string[]>(() => {
+    return Array.from({ length: 4 }, () => crypto.randomUUID());
+  });
 
   // Load kiosks
   useEffect(() => {
@@ -63,6 +70,21 @@ export default function KioskEmulatorPage() {
     };
     loadKiosks();
   }, [showError]);
+
+  // Load animals
+  useEffect(() => {
+    const loadAnimals = async () => {
+      try {
+        const apiAnimals = await animalsApi.getAll();
+        setAnimals(apiAnimals.filter((a) => a.isActive));
+      } catch (error) {
+        console.error('Failed to load animals:', error);
+        // Don't show error for animals, just use empty array
+        setAnimals([]);
+      }
+    };
+    loadAnimals();
+  }, []);
 
   // Connect WebSocket
   const handleConnect = useCallback(() => {
@@ -461,19 +483,36 @@ export default function KioskEmulatorPage() {
                     <h3 className="font-semibold text-green-800 mb-2">
                       3. 수호 동물 선택
                     </h3>
-                    <div className="grid grid-cols-4 gap-2">
-                      {['animal-1', 'animal-2', 'animal-3', 'animal-4'].map(
-                        (animalId) => (
+                    {animals.length === 0 ? (
+                      <div className="space-y-2">
+                        <p className="text-sm text-gray-600 mb-2">
+                          동물 데이터가 없습니다. 테스트용 더미 동물을 사용합니다.
+                        </p>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                          {dummyAnimalIds.map((animalId, index) => (
+                            <Button
+                              key={animalId}
+                              onClick={() => handleAnimalSelected(animalId)}
+                              className="bg-green-500 hover:bg-green-600 text-white"
+                            >
+                              동물 {index + 1}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        {animals.map((animal) => (
                           <Button
-                            key={animalId}
-                            onClick={() => handleAnimalSelected(animalId)}
+                            key={animal.id}
+                            onClick={() => handleAnimalSelected(animal.id)}
                             className="bg-green-500 hover:bg-green-600 text-white"
                           >
-                            동물 {animalId.split('-')[1]}
+                            {animal.name}
                           </Button>
-                        ),
-                      )}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
