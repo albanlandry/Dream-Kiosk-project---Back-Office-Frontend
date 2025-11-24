@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -70,6 +71,9 @@ interface CalendarData {
 }
 
 export default function ScheduleManagementPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [contentPcs, setContentPcs] = useState<ContentPc[]>([]);
   const [statistics, setStatistics] = useState<ScheduleStatistics>({
@@ -80,7 +84,15 @@ export default function ScheduleManagementPage() {
     cancelled: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
+  
+  // Initialize filters from URL query parameters
+  const [projectFilter, setProjectFilter] = useState<string>(searchParams.get('project') || '');
+  const [contentPcFilter, setContentPcFilter] = useState<string>(searchParams.get('contentPc') || '');
+  const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('status') || '');
+  const [dateFilter, setDateFilter] = useState<string>(searchParams.get('date') || '');
+  const [searchTerm, setSearchTerm] = useState<string>(searchParams.get('search') || '');
+  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page')) || 1);
+  
   const [pagination, setPagination] = useState({
     total: 0,
     page: 1,
@@ -88,13 +100,6 @@ export default function ScheduleManagementPage() {
     totalPages: 1,
     hasMore: false,
   });
-
-  // Filters
-  const [projectFilter, setProjectFilter] = useState<string>('');
-  const [contentPcFilter, setContentPcFilter] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<string>('');
-  const [dateFilter, setDateFilter] = useState<string>('');
-  const [searchTerm, setSearchTerm] = useState('');
 
   // Calendar
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -107,6 +112,68 @@ export default function ScheduleManagementPage() {
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
 
   const { showSuccess, showError } = useToastStore();
+
+  // Update URL query parameters
+  const updateURL = useCallback((updates: {
+    project?: string;
+    contentPc?: string;
+    status?: string;
+    date?: string;
+    search?: string;
+    page?: number;
+  }) => {
+    const params = new URLSearchParams(searchParams.toString());
+    
+    if (updates.project !== undefined) {
+      if (updates.project) {
+        params.set('project', updates.project);
+      } else {
+        params.delete('project');
+      }
+    }
+    
+    if (updates.contentPc !== undefined) {
+      if (updates.contentPc) {
+        params.set('contentPc', updates.contentPc);
+      } else {
+        params.delete('contentPc');
+      }
+    }
+    
+    if (updates.status !== undefined) {
+      if (updates.status) {
+        params.set('status', updates.status);
+      } else {
+        params.delete('status');
+      }
+    }
+    
+    if (updates.date !== undefined) {
+      if (updates.date) {
+        params.set('date', updates.date);
+      } else {
+        params.delete('date');
+      }
+    }
+    
+    if (updates.search !== undefined) {
+      if (updates.search) {
+        params.set('search', updates.search);
+      } else {
+        params.delete('search');
+      }
+    }
+    
+    if (updates.page !== undefined) {
+      if (updates.page > 1) {
+        params.set('page', updates.page.toString());
+      } else {
+        params.delete('page');
+      }
+    }
+    
+    router.push(`/dashboard/schedule?${params.toString()}`, { scroll: false });
+  }, [router, searchParams]);
 
   useEffect(() => {
     loadProjects();
@@ -121,7 +188,6 @@ export default function ScheduleManagementPage() {
   }, [currentMonth, projectFilter]);
 
   const loadProjects = async () => {
-    console.log('loadProjects')
     try {
       setIsLoadingProjects(true);
       const response = await apiClient.get('/projects', {
@@ -143,8 +209,6 @@ export default function ScheduleManagementPage() {
           value: project.id,
         })),
       ];
-
-      console.log(options)
 
       setProjectOptions(options);
     } catch (error) {
@@ -451,6 +515,7 @@ export default function ScheduleManagementPage() {
                 onChange={(value) => {
                   setProjectFilter(value);
                   setCurrentPage(1);
+                  updateURL({ project: value, page: 1 });
                 }}
                 placeholder="전체 프로젝트"
                 searchPlaceholder="프로젝트 검색..."
@@ -468,6 +533,7 @@ export default function ScheduleManagementPage() {
                 onChange={(value) => {
                   setContentPcFilter(value);
                   setCurrentPage(1);
+                  updateURL({ contentPc: value, page: 1 });
                 }}
                 placeholder="전체 Content PC"
                 searchPlaceholder="Content PC 검색..."
@@ -504,6 +570,7 @@ export default function ScheduleManagementPage() {
                 onChange={(e) => {
                   setDateFilter(e.target.value);
                   setCurrentPage(1);
+                  updateURL({ date: e.target.value, page: 1 });
                 }}
                 className="w-full"
               />
@@ -725,7 +792,10 @@ export default function ScheduleManagementPage() {
               <Pagination
                 currentPage={pagination.page}
                 totalPages={pagination.totalPages}
-                onPageChange={setCurrentPage}
+                onPageChange={(page) => {
+                  setCurrentPage(page);
+                  updateURL({ page });
+                }}
               />
             </div>
           )}
