@@ -9,6 +9,7 @@ import { useToastStore } from '@/lib/store/toastStore';
 import { Pagination } from '@/components/ui/pagination';
 import { cn } from '@/lib/utils/cn';
 import { StatCard } from '@/components/ui/stat-card';
+import { SearchableSelect, SearchableSelectOption } from '@/components/ui/searchable-select';
 
 interface Schedule {
   id: string;
@@ -100,7 +101,10 @@ export default function ScheduleManagementPage() {
   const [calendarData, setCalendarData] = useState<CalendarData>({});
 
   // Projects list for filter
-  const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
+  const [projects, setProjects] = useState<Array<{ id: string; name: string; location?: string }>>([]);
+  const [projectOptions, setProjectOptions] = useState<SearchableSelectOption[]>([]);
+  const [contentPcOptions, setContentPcOptions] = useState<SearchableSelectOption[]>([]);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
 
   const { showSuccess, showError } = useToastStore();
 
@@ -117,12 +121,37 @@ export default function ScheduleManagementPage() {
   }, [currentMonth, projectFilter]);
 
   const loadProjects = async () => {
+    console.log('loadProjects')
     try {
-      const response = await apiClient.get('/projects');
-      const projectsData = response.data?.data || response.data || [];
-      setProjects(Array.isArray(projectsData) ? projectsData : []);
+      setIsLoadingProjects(true);
+      const response = await apiClient.get('/projects', {
+        params: {
+          page: 1,
+          limit: 20,
+          fields: 'id,name,location',
+        },
+      });
+      const projectsData = response.data?.data?.data ||response.data?.data || response.data || [];
+      const projectsList = Array.isArray(projectsData) ? projectsData : [];
+      
+      // Convert to SearchableSelectOption format
+      const options: SearchableSelectOption[] = [
+        { id: 'all', label: '전체 프로젝트', value: '' },
+        ...projectsList.map((project: any) => ({
+          id: project.id,
+          label: `${project.name}${project.location ? ` (${project.location})` : ''}`,
+          value: project.id,
+        })),
+      ];
+
+      console.log(options)
+
+      setProjectOptions(options);
     } catch (error) {
       console.error('Failed to load projects:', error);
+      setProjectOptions([{ id: 'all', label: '전체 프로젝트', value: '' }]);
+    } finally {
+      setIsLoadingProjects(false);
     }
   };
 
@@ -164,7 +193,19 @@ export default function ScheduleManagementPage() {
 
       const response = await apiClient.get('/schedules/content-pcs', { params });
       const responseData = response.data?.data || response.data;
-      setContentPcs(Array.isArray(responseData) ? responseData : []);
+      const pcsList = Array.isArray(responseData) ? responseData : [];
+      setContentPcs(pcsList);
+      
+      // Convert to SearchableSelectOption format
+      const options: SearchableSelectOption[] = [
+        { id: 'all', label: '전체 Content PC', value: '' },
+        ...pcsList.map((pc) => ({
+          id: pc.id,
+          label: pc.name,
+          value: pc.id,
+        })),
+      ];
+      setContentPcOptions(options);
     } catch (error) {
       console.error('Failed to load Content PCs:', error);
     }
@@ -404,41 +445,35 @@ export default function ScheduleManagementPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 프로젝트:
               </label>
-              <select
+              <SearchableSelect
+                options={projectOptions}
                 value={projectFilter}
-                onChange={(e) => {
-                  setProjectFilter(e.target.value);
+                onChange={(value) => {
+                  setProjectFilter(value);
                   setCurrentPage(1);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">전체 프로젝트</option>
-                {projects.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))}
-              </select>
+                placeholder="전체 프로젝트"
+                searchPlaceholder="프로젝트 검색..."
+                isLoading={isLoadingProjects}
+                emptyMessage="프로젝트가 없습니다."
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Content PC:
               </label>
-              <select
+              <SearchableSelect
+                options={contentPcOptions}
                 value={contentPcFilter}
-                onChange={(e) => {
-                  setContentPcFilter(e.target.value);
+                onChange={(value) => {
+                  setContentPcFilter(value);
                   setCurrentPage(1);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">전체 Content PC</option>
-                {contentPcs.map((pc) => (
-                  <option key={pc.id} value={pc.id}>
-                    {pc.name}
-                  </option>
-                ))}
-              </select>
+                placeholder="전체 Content PC"
+                searchPlaceholder="Content PC 검색..."
+                emptyMessage="Content PC가 없습니다."
+                disabled={!projectFilter && contentPcs.length === 0}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
