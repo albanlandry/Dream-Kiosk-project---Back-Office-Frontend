@@ -138,15 +138,17 @@ export function SearchableSelect({
           className={cn(
             'w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-left',
             'focus:outline-none focus:border-blue-500',
-            'flex items-center justify-between',
+            'flex items-center justify-between gap-2',
             disabled && 'opacity-50 cursor-not-allowed',
             !selectedOption && 'text-gray-500',
           )}
         >
-          <span>{selectedOption ? selectedOption.label : placeholder}</span>
+          <span className="flex-1 min-w-0 truncate">
+            {selectedOption ? selectedOption.label : placeholder}
+          </span>
           <i
             className={cn(
-              'fas fa-chevron-down transition-transform',
+              'fas fa-chevron-down transition-transform flex-shrink-0',
               isOpen && 'transform rotate-180',
             )}
           ></i>
