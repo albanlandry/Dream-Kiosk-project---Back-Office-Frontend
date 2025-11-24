@@ -51,6 +51,11 @@ export default function KioskEmulatorPage() {
     return Array.from({ length: 4 }, () => crypto.randomUUID());
   });
 
+  // Generate dummy template IDs (valid UUIDs) for testing
+  const [dummyTemplateIds] = useState<string[]>(() => {
+    return Array.from({ length: 3 }, () => crypto.randomUUID());
+  });
+
   // Load kiosks
   useEffect(() => {
     const loadKiosks = async () => {
@@ -635,17 +640,15 @@ export default function KioskEmulatorPage() {
                       7. 비디오 템플릿 선택
                     </h3>
                     <div className="grid grid-cols-3 gap-2">
-                      {['template-1', 'template-2', 'template-3'].map(
-                        (templateId) => (
-                          <Button
-                            key={templateId}
-                            onClick={() => handleVideoTemplateSelected(templateId)}
-                            className="bg-orange-500 hover:bg-orange-600 text-white"
-                          >
-                            템플릿 {templateId.split('-')[1]}
-                          </Button>
-                        ),
-                      )}
+                      {dummyTemplateIds.map((templateId, index) => (
+                        <Button
+                          key={templateId}
+                          onClick={() => handleVideoTemplateSelected(templateId)}
+                          className="bg-orange-500 hover:bg-orange-600 text-white"
+                        >
+                          템플릿 {index + 1}
+                        </Button>
+                      ))}
                     </div>
                   </div>
                 )}
