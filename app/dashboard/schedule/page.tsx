@@ -457,6 +457,21 @@ export default function ScheduleManagementPage() {
     );
   };
 
+  const isSelected = (date: Date) => {
+    if (!dateFilter) return false;
+    // Format date to YYYY-MM-DD using local time
+    const dateStr = formatDateToLocalString(date);
+    return dateStr === dateFilter;
+  };
+
+  // Format date to YYYY-MM-DD using local time (not UTC)
+  const formatDateToLocalString = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   return (
     <>
       <link
@@ -639,29 +654,52 @@ export default function ScheduleManagementPage() {
             {getCalendarDays().map((dayInfo, index) => {
               const scheduleCount = getScheduleCountForDate(dayInfo.date);
               const isCurrentDay = isToday(dayInfo.date);
+              const isSelectedDay = isSelected(dayInfo.date);
 
               return (
                 <div
                   key={index}
                   className={cn(
-                    'aspect-square p-2 border border-gray-200 rounded cursor-pointer hover:bg-gray-50 transition-colors',
-                    !dayInfo.isCurrentMonth && 'text-gray-400 bg-gray-50',
-                    isCurrentDay && 'bg-blue-100 border-blue-500 font-bold',
-                    scheduleCount > 0 && 'bg-purple-50 border-purple-300',
+                    'relative aspect-square p-2 border-2 rounded cursor-pointer transition-all duration-200',
+                    !dayInfo.isCurrentMonth && 'text-gray-400 bg-gray-50 border-gray-200',
+                    dayInfo.isCurrentMonth && !isCurrentDay && !isSelectedDay && 'border-gray-200 hover:bg-gray-50 hover:border-gray-300',
+                    // Today styling (when not selected)
+                    isCurrentDay && !isSelectedDay && 'bg-blue-50 border-blue-400 font-semibold text-blue-700 hover:bg-blue-100',
+                    // Selected day styling (takes priority over today)
+                    isSelectedDay && 'bg-purple-100 border-purple-500 font-bold text-purple-800 shadow-md ring-2 ring-purple-300',
+                    // Today and selected (both)
+                    isCurrentDay && isSelectedDay && 'bg-purple-200 border-purple-600 font-bold text-purple-900 shadow-lg ring-2 ring-purple-400',
+                    // Days with schedules
+                    scheduleCount > 0 && !isSelectedDay && 'bg-purple-50 border-purple-200',
                   )}
                   onClick={() => {
                     if (dayInfo.isCurrentMonth) {
-                      setDateFilter(
-                        dayInfo.date.toISOString().split('T')[0],
-                      );
+                      // Use local date formatting to avoid timezone issues
+                      const dateStr = formatDateToLocalString(dayInfo.date);
+                      setDateFilter(dateStr);
+                      setCurrentPage(1);
+                      updateURL({ date: dateStr, page: 1 });
                     }
                   }}
                 >
-                  <div className="text-sm">{dayInfo.day}</div>
+                  <div className={cn(
+                    'text-sm',
+                    isCurrentDay && !isSelectedDay && 'text-blue-700',
+                    isSelectedDay && 'text-purple-800',
+                  )}>
+                    {dayInfo.day}
+                  </div>
                   {scheduleCount > 0 && (
-                    <div className="text-xs text-purple-600 font-medium mt-1">
+                    <div className={cn(
+                      'text-xs font-medium mt-1',
+                      isSelectedDay ? 'text-purple-700' : 'text-purple-600'
+                    )}>
                       {scheduleCount}개
                     </div>
+                  )}
+                  {/* Today indicator dot */}
+                  {isCurrentDay && !isSelectedDay && (
+                    <div className="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full"></div>
                   )}
                 </div>
               );
