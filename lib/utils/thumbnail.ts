@@ -22,15 +22,15 @@ export function getResourceThumbnailUrl(
   directUrl?: string | null,
 ): string | null {
   // If direct URL is provided and is a full URL, use it
-  if (directUrl && directUrl.startsWith('http')) {
-    return directUrl;
-  }
+  // if (directUrl && directUrl.startsWith('http')) {
+  //   return directUrl;
+  // }
 
-  // If direct URL is provided and is a relative path, construct full URL
-  if (directUrl && !directUrl.startsWith('http')) {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
-    return `${baseUrl}${directUrl.startsWith('/') ? directUrl : `/${directUrl}`}`;
-  }
+  // // If direct URL is provided and is a relative path, construct full URL
+  // if (directUrl && !directUrl.startsWith('http')) {
+  //   const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
+  //   return `${baseUrl}${directUrl.startsWith('/') ? directUrl : `/${directUrl}`}`;
+  // }
 
   // Fallback to thumbnail API
   return getThumbnailUrl(resourceId, resourceType);

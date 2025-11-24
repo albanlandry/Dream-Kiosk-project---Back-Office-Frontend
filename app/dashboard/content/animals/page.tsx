@@ -176,6 +176,9 @@ export default function AnimalsManagementPage() {
                   <div className="relative aspect-square bg-gray-100 rounded-lg mb-3 overflow-hidden">
                     {(() => {
                       const thumbnailUrl = getResourceThumbnailUrl(animal.id, 'animal', animal.thumbnailUrl);
+
+                      // console.log('thumbnailUrl', animal.thumbnailUrl);
+
                       return thumbnailUrl ? (
                         <img
                           src={thumbnailUrl}
