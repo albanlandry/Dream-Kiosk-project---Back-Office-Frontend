@@ -9,6 +9,7 @@ import { useToastStore } from '@/lib/store/toastStore';
 import { UploadImageModal } from '@/components/content/UploadImageModal';
 import { cn } from '@/lib/utils/cn';
 import { getResourceThumbnailUrl } from '@/lib/utils/thumbnail';
+import { Pagination } from '@/components/ui/pagination';
 
 interface Image {
   id: string;
@@ -32,38 +33,91 @@ export default function ImagesManagementPage() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 20,
+    totalPages: 1,
+    hasMore: false,
+  });
   const { showSuccess, showError } = useToastStore();
 
   useEffect(() => {
     loadImages();
-  }, []);
+  }, [currentPage]);
 
   const loadImages = async () => {
     try {
       setIsLoading(true);
-      const response = await apiClient.get('/images?active_only=false');
-      // HATEOAS 응답 구조: { data: { images: [...], total_count: ... }, _links: {...} }
+      const params: any = {
+        active_only: false,
+        page: currentPage,
+        limit: 20,
+      };
+      
+      // 검색어가 있으면 파라미터에 추가 (백엔드에서 검색 지원 시)
+      if (searchTerm) {
+        params.search = searchTerm;
+      }
+      
+      const response = await apiClient.get('/images', { params });
+      // HATEOAS 응답 구조: { data: { images: [...], total_count: ..., pagination: {...} }, _links: {...} }
       const responseData = response.data?.data || response.data;
-      const imagesArray = responseData?.images || responseData || [];
       
-      // API 응답 형식을 프론트엔드 형식으로 변환
-      const formattedImages = imagesArray.map((img: any) => ({
-        id: img.image_id || img.id,
-        filename: img.filename,
-        originalName: img.filename || img.originalName,
-        mimeType: img.mime_type || img.mimeType,
-        size: img.size,
-        filePath: img.url || img.filePath,
-        thumbnailPath: img.thumbnail_url || img.thumbnailPath,
-        description: img.description,
-        width: img.width,
-        height: img.height,
-        isActive: img.is_active !== undefined ? img.is_active : img.isActive !== undefined ? img.isActive : true,
-        createdAt: img.created_at || img.createdAt,
-        updatedAt: img.updated_at || img.updatedAt,
-      }));
-      
-      setImages(formattedImages);
+      // 페이징 정보 확인
+      if (responseData.pagination) {
+        const imagesArray = responseData.images || responseData.data || [];
+        setPagination(responseData.pagination);
+        
+        // API 응답 형식을 프론트엔드 형식으로 변환
+        const formattedImages = imagesArray.map((img: any) => ({
+          id: img.image_id || img.id,
+          filename: img.filename,
+          originalName: img.filename || img.originalName,
+          mimeType: img.mime_type || img.mimeType,
+          size: img.size,
+          filePath: img.url || img.filePath,
+          thumbnailPath: img.thumbnail_url || img.thumbnailPath,
+          description: img.description,
+          width: img.width,
+          height: img.height,
+          isActive: img.is_active !== undefined ? img.is_active : img.isActive !== undefined ? img.isActive : true,
+          createdAt: img.created_at || img.createdAt,
+          updatedAt: img.updated_at || img.updatedAt,
+        }));
+        
+        setImages(formattedImages);
+      } else {
+        // 페이징 정보가 없는 경우 (기존 형식)
+        const imagesArray = responseData?.images || responseData || [];
+        
+        // API 응답 형식을 프론트엔드 형식으로 변환
+        const formattedImages = imagesArray.map((img: any) => ({
+          id: img.image_id || img.id,
+          filename: img.filename,
+          originalName: img.filename || img.originalName,
+          mimeType: img.mime_type || img.mimeType,
+          size: img.size,
+          filePath: img.url || img.filePath,
+          thumbnailPath: img.thumbnail_url || img.thumbnailPath,
+          description: img.description,
+          width: img.width,
+          height: img.height,
+          isActive: img.is_active !== undefined ? img.is_active : img.isActive !== undefined ? img.isActive : true,
+          createdAt: img.created_at || img.createdAt,
+          updatedAt: img.updated_at || img.updatedAt,
+        }));
+        
+        setImages(formattedImages);
+        setPagination({
+          total: formattedImages.length,
+          page: 1,
+          limit: 20,
+          totalPages: 1,
+          hasMore: false,
+        });
+      }
     } catch (error: any) {
       showError('이미지 목록을 불러오는데 실패했습니다.');
       setImages([]); // 에러 시 빈 배열로 설정
@@ -99,7 +153,7 @@ export default function ImagesManagementPage() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedImages(filteredImages.map(img => img.id));
+      setSelectedImages(displayedImages.map(img => img.id));
     } else {
       setSelectedImages([]);
     }
@@ -154,10 +208,30 @@ export default function ImagesManagementPage() {
     }
   };
 
-  const filteredImages = images.filter((image) =>
-    image.originalName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    image.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    setSelectedImages([]); // 페이지 변경 시 선택 해제
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // 검색어가 변경되면 첫 페이지로 리셋
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    } else {
+      loadImages();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm]);
+
+  // 검색어가 있을 때는 클라이언트 사이드 필터링 사용
+  // 검색어가 없을 때는 서버 페이징 사용
+  const displayedImages = searchTerm
+    ? images.filter((image) =>
+        image.originalName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        image.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : images;
 
   return (
     <>
@@ -237,9 +311,11 @@ export default function ImagesManagementPage() {
           <div className="flex items-center justify-center h-64">
             <p className="text-gray-500">로딩 중...</p>
           </div>
-        ) : filteredImages.length === 0 ? (
+        ) : displayedImages.length === 0 ? (
           <div className="flex items-center justify-center h-64">
-            <p className="text-gray-500">이미지가 없습니다.</p>
+            <p className="text-gray-500">
+              {searchTerm ? '검색 결과가 없습니다.' : '이미지가 없습니다.'}
+            </p>
           </div>
         ) : (
           <>
@@ -247,7 +323,7 @@ export default function ImagesManagementPage() {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={selectedImages.length === filteredImages.length && filteredImages.length > 0}
+                  checked={selectedImages.length === displayedImages.length && displayedImages.length > 0}
                   onChange={(e) => handleSelectAll(e.target.checked)}
                   className="w-4 h-4 text-blue-600 rounded"
                 />
@@ -255,7 +331,7 @@ export default function ImagesManagementPage() {
               </label>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredImages.map((image) => (
+            {displayedImages.map((image) => (
               <div
                 key={image.id}
                 className={cn(
@@ -338,6 +414,28 @@ export default function ImagesManagementPage() {
               </div>
             ))}
             </div>
+            
+            {/* 페이징 */}
+            {!searchTerm && pagination.totalPages > 1 && (
+              <div className="mt-8">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={pagination.totalPages}
+                  onPageChange={handlePageChange}
+                />
+                <div className="text-center mt-4 text-sm text-gray-600">
+                  총 {pagination.total}개 중 {((currentPage - 1) * pagination.limit) + 1}-
+                  {Math.min(currentPage * pagination.limit, pagination.total)}개 표시
+                </div>
+              </div>
+            )}
+            
+            {/* 검색 결과 정보 */}
+            {searchTerm && displayedImages.length > 0 && (
+              <div className="mt-4 text-center text-sm text-gray-600">
+                검색 결과: {displayedImages.length}개
+              </div>
+            )}
           </>
         )}
       </div>

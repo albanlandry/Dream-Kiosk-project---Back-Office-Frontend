@@ -9,6 +9,7 @@ import { useToastStore } from '@/lib/store/toastStore';
 import { UploadVideoModal } from '@/components/content/UploadVideoModal';
 import { cn } from '@/lib/utils/cn';
 import { getResourceThumbnailUrl } from '@/lib/utils/thumbnail';
+import { Pagination } from '@/components/ui/pagination';
 
 interface Video {
   id: string;
@@ -32,38 +33,85 @@ export default function VideosManagementPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedVideos, setSelectedVideos] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 20,
+    totalPages: 1,
+    hasMore: false,
+  });
   const { showSuccess, showError } = useToastStore();
 
   useEffect(() => {
     loadVideos();
-  }, []);
+  }, [currentPage]);
 
   const loadVideos = async () => {
     try {
       setIsLoading(true);
-      const response = await apiClient.get('/videos');
+      const response = await apiClient.get('/videos', {
+        params: {
+          page: currentPage,
+          limit: 20,
+        },
+      });
       // HATEOAS 응답 구조 처리
       const responseData = response.data?.data || response.data;
-      const videosArray = Array.isArray(responseData) ? responseData : [];
       
-      // API 응답 형식을 프론트엔드 형식으로 변환
-      const formattedVideos = videosArray.map((video: any) => ({
-        id: video.video_id || video.id,
-        backgroundVideoId: video.backgroundVideoId,
-        userPicture: video.userPicture,
-        userName: video.userName,
-        userMessage: video.userMessage,
-        videoUrl: video.videoUrl || video.video_url,
-        thumbnailUrl: video.thumbnailUrl || video.thumbnail_url,
-        status: video.status,
-        priority: video.priority,
-        displayPeriodStart: video.displayPeriodStart || video.display_period_start,
-        displayPeriodEnd: video.displayPeriodEnd || video.display_period_end,
-        createdAt: video.createdAt || video.created_at,
-        updatedAt: video.updatedAt || video.updated_at,
-      }));
-      
-      setVideos(formattedVideos);
+      // 페이징 정보 확인
+      if (responseData.pagination) {
+        const videosArray = responseData.data || [];
+        setPagination(responseData.pagination);
+        
+        // API 응답 형식을 프론트엔드 형식으로 변환
+        const formattedVideos = videosArray.map((video: any) => ({
+          id: video.video_id || video.id,
+          backgroundVideoId: video.backgroundVideoId,
+          userPicture: video.userPicture,
+          userName: video.userName,
+          userMessage: video.userMessage,
+          videoUrl: video.videoUrl || video.video_url,
+          thumbnailUrl: video.thumbnailUrl || video.thumbnail_url,
+          status: video.status,
+          priority: video.priority,
+          displayPeriodStart: video.displayPeriodStart || video.display_period_start,
+          displayPeriodEnd: video.displayPeriodEnd || video.display_period_end,
+          createdAt: video.createdAt || video.created_at,
+          updatedAt: video.updatedAt || video.updated_at,
+        }));
+        
+        setVideos(formattedVideos);
+      } else {
+        // 페이징 정보가 없는 경우 (기존 형식)
+        const videosArray = Array.isArray(responseData) ? responseData : [];
+        
+        // API 응답 형식을 프론트엔드 형식으로 변환
+        const formattedVideos = videosArray.map((video: any) => ({
+          id: video.video_id || video.id,
+          backgroundVideoId: video.backgroundVideoId,
+          userPicture: video.userPicture,
+          userName: video.userName,
+          userMessage: video.userMessage,
+          videoUrl: video.videoUrl || video.video_url,
+          thumbnailUrl: video.thumbnailUrl || video.thumbnail_url,
+          status: video.status,
+          priority: video.priority,
+          displayPeriodStart: video.displayPeriodStart || video.display_period_start,
+          displayPeriodEnd: video.displayPeriodEnd || video.display_period_end,
+          createdAt: video.createdAt || video.created_at,
+          updatedAt: video.updatedAt || video.updated_at,
+        }));
+        
+        setVideos(formattedVideos);
+        setPagination({
+          total: formattedVideos.length,
+          page: 1,
+          limit: 20,
+          totalPages: 1,
+          hasMore: false,
+        });
+      }
     } catch (error: any) {
       showError('비디오 목록을 불러오는데 실패했습니다.');
       setVideos([]); // 에러 시 빈 배열로 설정
@@ -121,6 +169,12 @@ export default function VideosManagementPage() {
     } catch (error: any) {
       showError(error.response?.data?.message || '일괄 삭제에 실패했습니다.');
     }
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    setSelectedVideos([]); // 페이지 변경 시 선택 해제
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const getStatusBadge = (status: string) => {
@@ -308,6 +362,21 @@ export default function VideosManagementPage() {
                 </div>
               </div>
             ))}
+            
+            {/* 페이징 */}
+            {pagination.totalPages > 1 && (
+              <div className="mt-8">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={pagination.totalPages}
+                  onPageChange={handlePageChange}
+                />
+                <div className="text-center mt-4 text-sm text-gray-600">
+                  총 {pagination.total}개 중 {((currentPage - 1) * pagination.limit) + 1}-
+                  {Math.min(currentPage * pagination.limit, pagination.total)}개 표시
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

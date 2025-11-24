@@ -10,6 +10,7 @@ import { AnimalModal } from '@/components/content/AnimalModal';
 import { Animal } from '@/lib/api/animals';
 import { cn } from '@/lib/utils/cn';
 import { getResourceThumbnailUrl } from '@/lib/utils/thumbnail';
+import { Pagination } from '@/components/ui/pagination';
 
 export default function AnimalsManagementPage() {
   const [animals, setAnimals] = useState<Animal[]>([]);
@@ -17,38 +18,85 @@ export default function AnimalsManagementPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingAnimal, setEditingAnimal] = useState<Animal | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 20,
+    totalPages: 1,
+    hasMore: false,
+  });
   const { showSuccess, showError } = useToastStore();
 
   useEffect(() => {
     loadAnimals();
-  }, []);
+  }, [currentPage]);
 
   const loadAnimals = async () => {
     try {
       setIsLoading(true);
-      const response = await apiClient.get('/animals');
+      const response = await apiClient.get('/animals', {
+        params: {
+          page: currentPage,
+          limit: 20,
+        },
+      });
       // HATEOAS 응답 구조 처리
       const responseData = response.data?.data || response.data;
-      const animalsArray = Array.isArray(responseData) ? responseData : [];
       
-      // API 응답 형식을 프론트엔드 형식으로 변환
-      const formattedAnimals = animalsArray.map((animal: any) => ({
-        id: animal.id,
-        name: animal.name,
-        nameEn: animal.nameEn || animal.name_en,
-        description: animal.description,
-        characteristics: animal.characteristics,
-        themes: animal.themes || [],
-        thumbnailUrl: animal.thumbnailUrl || animal.thumbnail_url,
-        loveFileUrl: animal.loveFileUrl || animal.love_file_url,
-        healthFileUrl: animal.healthFileUrl || animal.health_file_url,
-        wealthFileUrl: animal.wealthFileUrl || animal.wealth_file_url,
-        isActive: animal.isActive !== undefined ? animal.isActive : animal.is_active !== undefined ? animal.is_active : true,
-        createdAt: animal.createdAt || animal.created_at,
-        updatedAt: animal.updatedAt || animal.updated_at,
-      }));
-      
-      setAnimals(formattedAnimals);
+      // 페이징 정보 확인
+      if (responseData.pagination) {
+        const animalsArray = responseData.data || [];
+        setPagination(responseData.pagination);
+        
+        // API 응답 형식을 프론트엔드 형식으로 변환
+        const formattedAnimals = animalsArray.map((animal: any) => ({
+          id: animal.id,
+          name: animal.name,
+          nameEn: animal.nameEn || animal.name_en,
+          description: animal.description,
+          characteristics: animal.characteristics,
+          themes: animal.themes || [],
+          thumbnailUrl: animal.thumbnailUrl || animal.thumbnail_url,
+          loveFileUrl: animal.loveFileUrl || animal.love_file_url,
+          healthFileUrl: animal.healthFileUrl || animal.health_file_url,
+          wealthFileUrl: animal.wealthFileUrl || animal.wealth_file_url,
+          isActive: animal.isActive !== undefined ? animal.isActive : animal.is_active !== undefined ? animal.is_active : true,
+          createdAt: animal.createdAt || animal.created_at,
+          updatedAt: animal.updatedAt || animal.updated_at,
+        }));
+        
+        setAnimals(formattedAnimals);
+      } else {
+        // 페이징 정보가 없는 경우 (기존 형식)
+        const animalsArray = Array.isArray(responseData) ? responseData : [];
+        
+        // API 응답 형식을 프론트엔드 형식으로 변환
+        const formattedAnimals = animalsArray.map((animal: any) => ({
+          id: animal.id,
+          name: animal.name,
+          nameEn: animal.nameEn || animal.name_en,
+          description: animal.description,
+          characteristics: animal.characteristics,
+          themes: animal.themes || [],
+          thumbnailUrl: animal.thumbnailUrl || animal.thumbnail_url,
+          loveFileUrl: animal.loveFileUrl || animal.love_file_url,
+          healthFileUrl: animal.healthFileUrl || animal.health_file_url,
+          wealthFileUrl: animal.wealthFileUrl || animal.wealth_file_url,
+          isActive: animal.isActive !== undefined ? animal.isActive : animal.is_active !== undefined ? animal.is_active : true,
+          createdAt: animal.createdAt || animal.created_at,
+          updatedAt: animal.updatedAt || animal.updated_at,
+        }));
+        
+        setAnimals(formattedAnimals);
+        setPagination({
+          total: formattedAnimals.length,
+          page: 1,
+          limit: 20,
+          totalPages: 1,
+          hasMore: false,
+        });
+      }
     } catch (error: any) {
       showError('동물 목록을 불러오는데 실패했습니다.');
       setAnimals([]);
@@ -99,6 +147,11 @@ export default function AnimalsManagementPage() {
   const handleModalClose = () => {
     setShowModal(false);
     setEditingAnimal(null);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const filteredAnimals = animals.filter((animal) => {
@@ -166,115 +219,132 @@ export default function AnimalsManagementPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredAnimals.map((animal) => (
-                <div
-                  key={animal.id}
-                  className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow"
-                >
-                  {/* 썸네일 */}
-                  <div className="relative aspect-square bg-gray-100 rounded-lg mb-3 overflow-hidden">
-                    {(() => {
-                      const thumbnailUrl = getResourceThumbnailUrl(animal.id, 'animal', animal.thumbnailUrl);
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredAnimals.map((animal) => (
+                  <div
+                    key={animal.id}
+                    className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow"
+                  >
+                    {/* 썸네일 */}
+                    <div className="relative aspect-square bg-gray-100 rounded-lg mb-3 overflow-hidden">
+                      {(() => {
+                        const thumbnailUrl = getResourceThumbnailUrl(animal.id, 'animal', animal.thumbnailUrl);
 
-                      // console.log('thumbnailUrl', animal.thumbnailUrl);
+                        // console.log('thumbnailUrl', animal.thumbnailUrl);
 
-                      return thumbnailUrl ? (
-                        <img
-                          src={thumbnailUrl}
-                          alt={animal.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <i className="fas fa-paw text-gray-400 text-4xl"></i>
-                        </div>
-                      );
-                    })()}
-                    <div
-                      className={cn(
-                        'absolute top-2 right-2 px-2 py-1 rounded text-xs font-semibold',
-                        animal.isActive
-                          ? 'bg-green-500 text-white'
-                          : 'bg-gray-500 text-white'
+                        return thumbnailUrl ? (
+                          <img
+                            src={thumbnailUrl}
+                            alt={animal.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <i className="fas fa-paw text-gray-400 text-4xl"></i>
+                          </div>
+                        );
+                      })()}
+                      <div
+                        className={cn(
+                          'absolute top-2 right-2 px-2 py-1 rounded text-xs font-semibold',
+                          animal.isActive
+                            ? 'bg-green-500 text-white'
+                            : 'bg-gray-500 text-white'
+                        )}
+                      >
+                        {animal.isActive ? '활성' : '비활성'}
+                      </div>
+                    </div>
+
+                    {/* 정보 */}
+                    <div className="mb-3">
+                      <h3 className="font-semibold text-gray-800 text-lg mb-1">
+                        {animal.name}
+                      </h3>
+                      {animal.nameEn && (
+                        <p className="text-sm text-gray-500 mb-2">{animal.nameEn}</p>
                       )}
-                    >
-                      {animal.isActive ? '활성' : '비활성'}
+                      {animal.characteristics && (
+                        <p className="text-sm text-gray-600 mb-2">
+                          {animal.characteristics}
+                        </p>
+                      )}
+                      {animal.description && (
+                        <p className="text-xs text-gray-500 line-clamp-2">
+                          {animal.description}
+                        </p>
+                      )}
+                      {animal.themes && animal.themes.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {animal.themes.map((theme) => (
+                            <span
+                              key={theme}
+                              className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded"
+                            >
+                              {theme === 'love' ? '사랑하길' : theme === 'health' ? '건강하길' : '부자되길'}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 액션 버튼 */}
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEdit(animal)}
+                        className="flex-1"
+                      >
+                        <i className="fas fa-edit mr-1"></i>
+                        수정
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleToggleActive(animal.id, animal.isActive)}
+                        className={cn(
+                          animal.isActive
+                            ? 'text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50'
+                            : 'text-green-600 hover:text-green-700 hover:bg-green-50'
+                        )}
+                      >
+                        <i className={cn('mr-1', animal.isActive ? 'fas fa-eye-slash' : 'fas fa-eye')}></i>
+                        {animal.isActive ? '비활성' : '활성'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDelete(animal.id)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <i className="fas fa-trash"></i>
+                      </Button>
                     </div>
                   </div>
-
-                  {/* 정보 */}
-                  <div className="mb-3">
-                    <h3 className="font-semibold text-gray-800 text-lg mb-1">
-                      {animal.name}
-                    </h3>
-                    {animal.nameEn && (
-                      <p className="text-sm text-gray-500 mb-2">{animal.nameEn}</p>
-                    )}
-                    {animal.characteristics && (
-                      <p className="text-sm text-gray-600 mb-2">
-                        {animal.characteristics}
-                      </p>
-                    )}
-                    {animal.description && (
-                      <p className="text-xs text-gray-500 line-clamp-2">
-                        {animal.description}
-                      </p>
-                    )}
-                    {animal.themes && animal.themes.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {animal.themes.map((theme) => (
-                          <span
-                            key={theme}
-                            className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded"
-                          >
-                            {theme === 'love' ? '사랑하길' : theme === 'health' ? '건강하길' : '부자되길'}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 액션 버튼 */}
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleEdit(animal)}
-                      className="flex-1"
-                    >
-                      <i className="fas fa-edit mr-1"></i>
-                      수정
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleToggleActive(animal.id, animal.isActive)}
-                      className={cn(
-                        animal.isActive
-                          ? 'text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50'
-                          : 'text-green-600 hover:text-green-700 hover:bg-green-50'
-                      )}
-                    >
-                      <i className={cn('mr-1', animal.isActive ? 'fas fa-eye-slash' : 'fas fa-eye')}></i>
-                      {animal.isActive ? '비활성' : '활성'}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleDelete(animal.id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <i className="fas fa-trash"></i>
-                    </Button>
+                ))}
+              </div>
+              
+              {/* 페이징 */}
+              {pagination.totalPages > 1 && (
+                <div className="mt-8">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={pagination.totalPages}
+                    onPageChange={handlePageChange}
+                  />
+                  <div className="text-center mt-4 text-sm text-gray-600">
+                    총 {pagination.total}개 중 {((currentPage - 1) * pagination.limit) + 1}-
+                    {Math.min(currentPage * pagination.limit, pagination.total)}개 표시
                   </div>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </div>
       </div>
