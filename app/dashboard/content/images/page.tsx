@@ -90,26 +90,26 @@ export default function ImagesManagementPage() {
         setImages(formattedImages);
       } else {
         // 페이징 정보가 없는 경우 (기존 형식)
-        const imagesArray = responseData?.images || responseData || [];
-        
-        // API 응답 형식을 프론트엔드 형식으로 변환
-        const formattedImages = imagesArray.map((img: any) => ({
-          id: img.image_id || img.id,
-          filename: img.filename,
-          originalName: img.filename || img.originalName,
-          mimeType: img.mime_type || img.mimeType,
-          size: img.size,
-          filePath: img.url || img.filePath,
-          thumbnailPath: img.thumbnail_url || img.thumbnailPath,
-          description: img.description,
-          width: img.width,
-          height: img.height,
-          isActive: img.is_active !== undefined ? img.is_active : img.isActive !== undefined ? img.isActive : true,
-          createdAt: img.created_at || img.createdAt,
-          updatedAt: img.updated_at || img.updatedAt,
-        }));
-        
-        setImages(formattedImages);
+      const imagesArray = responseData?.images || responseData || [];
+      
+      // API 응답 형식을 프론트엔드 형식으로 변환
+      const formattedImages = imagesArray.map((img: any) => ({
+        id: img.image_id || img.id,
+        filename: img.filename,
+        originalName: img.filename || img.originalName,
+        mimeType: img.mime_type || img.mimeType,
+        size: img.size,
+        filePath: img.url || img.filePath,
+        thumbnailPath: img.thumbnail_url || img.thumbnailPath,
+        description: img.description,
+        width: img.width,
+        height: img.height,
+        isActive: img.is_active !== undefined ? img.is_active : img.isActive !== undefined ? img.isActive : true,
+        createdAt: img.created_at || img.createdAt,
+        updatedAt: img.updated_at || img.updatedAt,
+      }));
+      
+      setImages(formattedImages);
         setPagination({
           total: formattedImages.length,
           page: 1,
@@ -228,8 +228,8 @@ export default function ImagesManagementPage() {
   // 검색어가 없을 때는 서버 페이징 사용
   const displayedImages = searchTerm
     ? images.filter((image) =>
-        image.originalName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        image.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    image.originalName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    image.description?.toLowerCase().includes(searchTerm.toLowerCase())
       )
     : images;
 

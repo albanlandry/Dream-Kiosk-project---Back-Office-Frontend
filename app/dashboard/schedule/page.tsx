@@ -11,6 +11,7 @@ import { Pagination } from '@/components/ui/pagination';
 import { cn } from '@/lib/utils/cn';
 import { StatCard } from '@/components/ui/stat-card';
 import { SearchableSelect, SearchableSelectOption } from '@/components/ui/searchable-select';
+import { CreateScheduleModal } from '@/components/schedules/CreateScheduleModal';
 
 interface Schedule {
   id: string;
@@ -110,6 +111,7 @@ export default function ScheduleManagementPage() {
   const [projectOptions, setProjectOptions] = useState<SearchableSelectOption[]>([]);
   const [contentPcOptions, setContentPcOptions] = useState<SearchableSelectOption[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const { showSuccess, showError } = useToastStore();
 
@@ -467,10 +469,7 @@ export default function ScheduleManagementPage() {
         action={{
           label: '새 스케줄 생성',
           icon: 'fas fa-plus',
-          onClick: () => {
-            // TODO: Implement create schedule modal
-            showError('스케줄 생성 기능은 곧 제공될 예정입니다.');
-          },
+          onClick: () => setShowCreateModal(true),
         }}
       />
       <div className="p-8 min-h-screen bg-gray-50">
@@ -922,6 +921,17 @@ export default function ScheduleManagementPage() {
           )}
         </div>
       </div>
+
+      {/* Create Schedule Modal */}
+      <CreateScheduleModal
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={() => {
+          setShowCreateModal(false);
+          loadSchedules();
+          loadStatistics();
+        }}
+      />
     </>
   );
 }
