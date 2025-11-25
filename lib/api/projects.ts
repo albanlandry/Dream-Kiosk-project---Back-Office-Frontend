@@ -12,6 +12,7 @@ export interface Project {
   totalContent: number;
   totalRevenue: number;
   kiosks?: Array<{ id: string; name: string }>;
+  contentPcs?: Array<{ id: string; name: string }>;
   createdAt: string | Date;
   updatedAt: string | Date;
 }

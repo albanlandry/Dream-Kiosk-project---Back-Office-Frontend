@@ -35,10 +35,12 @@ function transformProject(apiProject: ApiProject): Project {
     name: apiProject.name,
     description: apiProject.description || '',
     status: apiProject.status,
-    startDate: apiProject.startDate,
-    endDate: apiProject.endDate,
+    startDate: typeof apiProject.startDate === 'string' ? apiProject.startDate : apiProject.startDate.toISOString().split('T')[0],
+    endDate: apiProject.endDate 
+      ? (typeof apiProject.endDate === 'string' ? apiProject.endDate : apiProject.endDate.toISOString().split('T')[0])
+      : undefined,
     kioskCount: apiProject.kiosks?.length || 0,
-    contentPCCount: 0, // This might need to be calculated from related data
+    contentPCCount: (apiProject as any).contentPcs?.length || 0,
     totalContent: apiProject.totalContent || 0,
     totalRevenue: apiProject.totalRevenue || 0,
     owner: apiProject.owner,
