@@ -445,25 +445,25 @@ export default function ScheduleManagementPage() {
             icon={<i className="fas fa-calendar-alt"></i>}
             value={statistics.total.toLocaleString()}
             label="총 스케줄"
-            iconBg="bg-gradient-to-br from-purple-500 to-purple-600"
+            iconBg="bg-gradient-to-br from-purple-500 to-blue-500"
           />
           <StatCard
             icon={<i className="fas fa-play"></i>}
             value={statistics.active.toLocaleString()}
             label="활성 스케줄"
-            iconBg="bg-gradient-to-br from-green-500 to-green-600"
+            iconBg="bg-gradient-to-br from-purple-500 to-blue-500"
           />
           <StatCard
             icon={<i className="fas fa-clock"></i>}
             value={statistics.pending.toLocaleString()}
             label="대기 중"
-            iconBg="bg-gradient-to-br from-yellow-500 to-yellow-600"
+            iconBg="bg-gradient-to-br from-purple-500 to-blue-500"
           />
           <StatCard
             icon={<i className="fas fa-desktop"></i>}
             value={contentPcs.length.toString()}
             label="Content PC"
-            iconBg="bg-gradient-to-br from-blue-500 to-blue-600"
+            iconBg="bg-gradient-to-br from-purple-500 to-blue-500"
           />
         </div>
 
