@@ -12,6 +12,7 @@ import { Pagination } from '@/components/ui/pagination';
 import { useToastStore } from '@/lib/store/toastStore';
 import { LoadingModal } from '@/components/ui/loading-modal';
 import { projectsApi, type Project as ApiProject } from '@/lib/api/projects';
+import { useRouter } from 'next/navigation';
 
 export interface Project {
   id: string;
@@ -56,6 +57,7 @@ export default function ProjectManagementPage() {
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('');
   const { showSuccess, showError, showWarning } = useToastStore();
+  const router = useRouter();
 
   // Load projects from database on mount
   useEffect(() => {
@@ -98,6 +100,14 @@ export default function ProjectManagementPage() {
 
   const handleEdit = (project: Project) => {
     setEditingProject(project);
+  };
+
+  const handleManageContentPCs = (project?: Project) => {
+    if (project) {
+      router.push(`/dashboard/projects/content-pcs?projectId=${project.id}`);
+    } else {
+      router.push('/dashboard/projects/content-pcs');
+    }
   };
 
   const handlePause = async (project: Project) => {
@@ -185,6 +195,8 @@ export default function ProjectManagementPage() {
         }}
       />
       <div className="p-8 min-h-screen">
+
+
         {/* 프로젝트 통계 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
@@ -211,6 +223,17 @@ export default function ProjectManagementPage() {
             label="종료됨"
             iconBg="bg-gradient-to-br from-purple-500 to-purple-700"
           />
+        </div>
+
+        {/* Content PC Management Button */}
+        <div className="mb-6 flex justify-end">
+          <Button
+            onClick={() => handleManageContentPCs()}
+            className="bg-purple-500 hover:bg-purple-600 text-white"
+          >
+            <i className="fas fa-desktop mr-2"></i>
+            Content PC 관리
+          </Button>
         </div>
 
         {/* 프로젝트 목록 */}
