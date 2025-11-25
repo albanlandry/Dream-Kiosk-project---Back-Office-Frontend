@@ -12,11 +12,15 @@ import { cn } from '@/lib/utils/cn';
 import { StatCard } from '@/components/ui/stat-card';
 import { SearchableSelect, SearchableSelectOption } from '@/components/ui/searchable-select';
 import { CreateScheduleModal } from '@/components/schedules/CreateScheduleModal';
+import { Calendar, CalendarDateData } from '@/components/ui/calendar';
+import { ScheduleItem } from '@/components/schedules/ScheduleItem';
+import { ContentPCItem } from '@/components/schedules/ContentPCItem';
 
 interface Schedule {
   id: string;
   projectId: string;
   contentId: string;
+  title: string | null;
   authorName: string | null;
   wishMessage: string | null;
   templateAnimal: string | null;
@@ -28,6 +32,8 @@ interface Schedule {
   priority: number;
   status: 'scheduled' | 'playing' | 'completed' | 'cancelled';
   contentPcId: string | null;
+  playCount?: number; // Current play count
+  maxPlayCount?: number; // Maximum play count
   project?: {
     id: string;
     name: string;
@@ -291,7 +297,10 @@ export default function ScheduleManagementPage() {
   };
 
   const loadCalendarData = async () => {
-    if (!projectFilter) return;
+    if (!projectFilter) {
+      setCalendarData({});
+      return;
+    }
 
     try {
       const year = currentMonth.getFullYear();
@@ -306,9 +315,11 @@ export default function ScheduleManagementPage() {
       });
 
       const data = response.data?.data || response.data || {};
+      console.log('Calendar Data:', data);
       setCalendarData(data);
     } catch (error) {
       console.error('Failed to load calendar data:', error);
+      setCalendarData({});
     }
   };
 
@@ -353,14 +364,14 @@ export default function ScheduleManagementPage() {
     const statusMap = {
       scheduled: { label: '대기', className: 'bg-yellow-100 text-yellow-800' },
       playing: { label: '활성', className: 'bg-green-100 text-green-800' },
-      completed: { label: '완료', className: 'bg-gray-100 text-gray-800' },
+      completed: { label: '완료', className: 'bg-green-50 text-green-700' },
       cancelled: { label: '취소', className: 'bg-red-100 text-red-800' },
     };
 
     const statusInfo = statusMap[status as keyof typeof statusMap] || statusMap.scheduled;
 
     return (
-      <span className={cn('px-2 py-1 rounded-full text-xs font-medium', statusInfo.className)}>
+      <span className={cn('px-3 py-1 rounded-full text-xs font-medium', statusInfo.className)}>
         {statusInfo.label}
       </span>
     );
@@ -392,84 +403,14 @@ export default function ScheduleManagementPage() {
     });
   };
 
-  const getCalendarDays = () => {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startingDayOfWeek = firstDay.getDay();
-
-    const days: Array<{ day: number; isCurrentMonth: boolean; date: Date }> = [];
-
-    // Previous month days
-    const prevMonth = new Date(year, month, 0);
-    const prevMonthDays = prevMonth.getDate();
-    for (let i = startingDayOfWeek - 1; i >= 0; i--) {
-      days.push({
-        day: prevMonthDays - i,
-        isCurrentMonth: false,
-        date: new Date(year, month - 1, prevMonthDays - i),
-      });
-    }
-
-    // Current month days
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push({
-        day: i,
-        isCurrentMonth: true,
-        date: new Date(year, month, i),
-      });
-    }
-
-    // Next month days
-    const remainingDays = 42 - days.length; // 6 weeks * 7 days
-    for (let i = 1; i <= remainingDays; i++) {
-      days.push({
-        day: i,
-        isCurrentMonth: false,
-        date: new Date(year, month + 1, i),
-      });
-    }
-
-    return days;
+  const handleCalendarDateClick = (date: string) => {
+    setDateFilter(date);
+    setCurrentPage(1);
+    updateURL({ date, page: 1 });
   };
 
-  const navigateMonth = (direction: number) => {
-    setCurrentMonth((prev) => {
-      const newDate = new Date(prev);
-      newDate.setMonth(prev.getMonth() + direction);
-      return newDate;
-    });
-  };
-
-  const getScheduleCountForDate = (date: Date) => {
-    const dateKey = date.toISOString().split('T')[0];
-    return calendarData[dateKey] || 0;
-  };
-
-  const isToday = (date: Date) => {
-    const today = new Date();
-    return (
-      date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear()
-    );
-  };
-
-  const isSelected = (date: Date) => {
-    if (!dateFilter) return false;
-    // Format date to YYYY-MM-DD using local time
-    const dateStr = formatDateToLocalString(date);
-    return dateStr === dateFilter;
-  };
-
-  // Format date to YYYY-MM-DD using local time (not UTC)
-  const formatDateToLocalString = (date: Date): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+  const handleCalendarMonthChange = (month: Date) => {
+    setCurrentMonth(month);
   };
 
   return (
@@ -616,95 +557,16 @@ export default function ScheduleManagementPage() {
         </div>
 
         {/* Schedule Calendar */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">스케줄 캘린더</h3>
-            <div className="flex items-center gap-4">
-              <Button
-                onClick={() => navigateMonth(-1)}
-                className="bg-gray-400 hover:bg-gray-500 text-white"
-                size="sm"
-              >
-                <i className="fas fa-chevron-left"></i>
-              </Button>
-              <span className="text-lg font-medium text-gray-700">
-                {currentMonth.toLocaleDateString('ko-KR', {
-                  year: 'numeric',
-                  month: 'long',
-                })}
-              </span>
-              <Button
-                onClick={() => navigateMonth(1)}
-                className="bg-gray-400 hover:bg-gray-500 text-white"
-                size="sm"
-              >
-                <i className="fas fa-chevron-right"></i>
-              </Button>
-            </div>
-          </div>
-          <div className="grid grid-cols-7 gap-1">
-            {['일', '월', '화', '수', '목', '금', '토'].map((day) => (
-              <div
-                key={day}
-                className="text-center font-medium text-gray-600 py-2 text-sm"
-              >
-                {day}
-              </div>
-            ))}
-            {getCalendarDays().map((dayInfo, index) => {
-              const scheduleCount = getScheduleCountForDate(dayInfo.date);
-              const isCurrentDay = isToday(dayInfo.date);
-              const isSelectedDay = isSelected(dayInfo.date);
-
-              return (
-                <div
-                  key={index}
-                  className={cn(
-                    'relative aspect-square p-2 border-2 rounded cursor-pointer transition-all duration-200',
-                    !dayInfo.isCurrentMonth && 'text-gray-400 bg-gray-50 border-gray-200',
-                    dayInfo.isCurrentMonth && !isCurrentDay && !isSelectedDay && 'border-gray-200 hover:bg-gray-50 hover:border-gray-300',
-                    // Today styling (when not selected)
-                    isCurrentDay && !isSelectedDay && 'bg-blue-50 border-blue-400 font-semibold text-blue-700 hover:bg-blue-100',
-                    // Selected day styling (takes priority over today)
-                    isSelectedDay && 'bg-purple-100 border-purple-500 font-bold text-purple-800 shadow-md ring-2 ring-purple-300',
-                    // Today and selected (both)
-                    isCurrentDay && isSelectedDay && 'bg-purple-200 border-purple-600 font-bold text-purple-900 shadow-lg ring-2 ring-purple-400',
-                    // Days with schedules
-                    scheduleCount > 0 && !isSelectedDay && 'bg-purple-50 border-purple-200',
-                  )}
-                  onClick={() => {
-                    if (dayInfo.isCurrentMonth) {
-                      // Use local date formatting to avoid timezone issues
-                      const dateStr = formatDateToLocalString(dayInfo.date);
-                      setDateFilter(dateStr);
-                      setCurrentPage(1);
-                      updateURL({ date: dateStr, page: 1 });
-                    }
-                  }}
-                >
-                  <div className={cn(
-                    'text-sm',
-                    isCurrentDay && !isSelectedDay && 'text-blue-700',
-                    isSelectedDay && 'text-purple-800',
-                  )}>
-                    {dayInfo.day}
-                  </div>
-                  {scheduleCount > 0 && (
-                    <div className={cn(
-                      'text-xs font-medium mt-1',
-                      isSelectedDay ? 'text-purple-700' : 'text-purple-600'
-                    )}>
-                      {scheduleCount}개
-                    </div>
-                  )}
-                  {/* Today indicator dot */}
-                  {isCurrentDay && !isSelectedDay && (
-                    <div className="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full"></div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+        <div className="mb-6">
+          <Calendar
+            currentMonth={currentMonth}
+            selectedDate={dateFilter}
+            dateData={calendarData as CalendarDateData}
+            onDateClick={handleCalendarDateClick}
+            onMonthChange={handleCalendarMonthChange}
+            headerTitle="스케줄 캘린더"
+            locale="ko-KR"
+          />
         </div>
 
         {/* Schedule List */}
@@ -721,106 +583,25 @@ export default function ScheduleManagementPage() {
           ) : (
             <div className="space-y-4">
               {schedules.map((schedule) => (
-                <div
+                <ScheduleItem
                   key={schedule.id}
-                  className="border-l-4 border-blue-500 bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h4 className="text-lg font-semibold text-gray-800">
-                        {schedule.authorName || schedule.content?.userName || 'Unknown'} -{' '}
-                        {schedule.templateAnimal || '꿈조각'}
-                      </h4>
-                      <p className="text-sm text-gray-600 mt-1">
-                        Content PC:{' '}
-                        {schedule.contentPcId
-                          ? contentPcs.find((pc) => pc.id === schedule.contentPcId)?.name ||
-                            '할당됨'
-                          : '미할당'}
-                      </p>
-                    </div>
-                    <div>{getStatusBadge(schedule.status)}</div>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
-                    <div>
-                      <span className="text-sm text-gray-600">시작 시간:</span>
-                      <p className="text-sm font-medium text-gray-800">
-                        {formatDateTime(schedule.displayStart)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-gray-600">종료 시간:</span>
-                      <p className="text-sm font-medium text-gray-800">
-                        {formatDateTime(schedule.displayEnd)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-gray-600">우선순위:</span>
-                      <p className="text-sm font-medium text-gray-800">
-                        {getPriorityText(schedule.priority)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-gray-600">순서:</span>
-                      <p className="text-sm font-medium text-gray-800">
-                        {schedule.scheduleOrder}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      className="bg-blue-500 hover:bg-blue-600 text-white"
-                      onClick={() => {
-                        // TODO: Implement view details modal
-                        showError('상세보기 기능은 곧 제공될 예정입니다.');
-                      }}
-                    >
-                      <i className="fas fa-eye mr-1"></i>
-                      상세보기
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="bg-yellow-500 hover:bg-yellow-600 text-white"
-                      onClick={() => {
-                        // TODO: Implement edit modal
-                        showError('수정 기능은 곧 제공될 예정입니다.');
-                      }}
-                    >
-                      <i className="fas fa-edit mr-1"></i>
-                      수정
-                    </Button>
-                    {schedule.status === 'playing' || schedule.status === 'scheduled' ? (
-                      <Button
-                        size="sm"
-                        className="bg-red-500 hover:bg-red-600 text-white"
-                        onClick={() => handleStopSchedule(schedule.id)}
-                      >
-                        <i className="fas fa-stop mr-1"></i>
-                        중지
-                      </Button>
-                    ) : schedule.status === 'completed' ? (
-                      <>
-                        <Button
-                          size="sm"
-                          className="bg-green-500 hover:bg-green-600 text-white"
-                          onClick={() => handleRestartSchedule(schedule.id)}
-                        >
-                          <i className="fas fa-redo mr-1"></i>
-                          재실행
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="bg-red-500 hover:bg-red-600 text-white"
-                          onClick={() => handleDeleteSchedule(schedule.id)}
-                        >
-                          <i className="fas fa-trash mr-1"></i>
-                          삭제
-                        </Button>
-                      </>
-                    ) : null}
-                  </div>
-                </div>
+                  schedule={schedule}
+                  contentPcs={contentPcs}
+                  onViewDetails={(id) => {
+                    // TODO: Implement view details modal
+                    showError('상세보기 기능은 곧 제공될 예정입니다.');
+                  }}
+                  onEdit={(id) => {
+                    // TODO: Implement edit modal
+                    showError('수정 기능은 곧 제공될 예정입니다.');
+                  }}
+                  onStop={handleStopSchedule}
+                  onRestart={handleRestartSchedule}
+                  onDelete={handleDeleteSchedule}
+                  formatDateTime={formatDateTime}
+                  getStatusBadge={getStatusBadge}
+                  getPriorityText={getPriorityText}
+                />
               ))}
             </div>
           )}
@@ -848,112 +629,31 @@ export default function ScheduleManagementPage() {
           ) : (
             <div className="space-y-4">
               {contentPcs.map((pc) => (
-                <div
+                <ContentPCItem
                   key={pc.id}
-                  className="border rounded-lg p-4 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h4 className="text-lg font-semibold text-gray-800">{pc.name}</h4>
-                      <p className="text-sm text-gray-600">{pc.project?.name || '프로젝트 없음'}</p>
-                    </div>
-                    <span
-                      className={cn(
-                        'px-3 py-1 rounded-full text-xs font-medium',
-                        pc.status === 'online'
-                          ? 'bg-green-100 text-green-800'
-                          : pc.status === 'offline'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-yellow-100 text-yellow-800',
-                      )}
-                    >
-                      {pc.status === 'online'
-                        ? '온라인'
-                        : pc.status === 'offline'
-                          ? '오프라인'
-                          : '점검 중'}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
-                    <div>
-                      <span className="text-sm text-gray-600">IP 주소:</span>
-                      <p className="text-sm font-medium text-gray-800">
-                        {pc.ipAddress || 'N/A'}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-gray-600">디스플레이:</span>
-                      <p className="text-sm font-medium text-gray-800">{pc.displayCount}대</p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-gray-600">
-                        {pc.status === 'online' ? '현재 재생:' : '마지막 연결:'}
-                      </span>
-                      <p className="text-sm font-medium text-gray-800">
-                        {pc.status === 'online'
-                          ? schedules.find((s) => s.id === pc.currentScheduleId)?.authorName ||
-                            '없음'
-                          : pc.lastConnectedAt
-                            ? formatDateTime(pc.lastConnectedAt)
-                            : 'N/A'}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-gray-600">대기 스케줄:</span>
-                      <p className="text-sm font-medium text-gray-800">
-                        {pc.waitingScheduleCount}개
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      className="bg-blue-500 hover:bg-blue-600 text-white"
-                      onClick={() => {
-                        // TODO: Implement monitoring modal
-                        showError('모니터링 기능은 곧 제공될 예정입니다.');
-                      }}
-                    >
-                      <i className="fas fa-eye mr-1"></i>
-                      모니터링
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="bg-gray-500 hover:bg-gray-600 text-white"
-                      onClick={() => {
-                        // TODO: Implement settings modal
-                        showError('설정 기능은 곧 제공될 예정입니다.');
-                      }}
-                    >
-                      <i className="fas fa-cog mr-1"></i>
-                      설정
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="bg-yellow-500 hover:bg-yellow-600 text-white"
-                      onClick={() => {
-                        // TODO: Implement restart
-                        showError('재시작 기능은 곧 제공될 예정입니다.');
-                      }}
-                    >
-                      <i className="fas fa-sync mr-1"></i>
-                      재시작
-                    </Button>
-                    {pc.status === 'offline' && (
-                      <Button
-                        size="sm"
-                        className="bg-red-500 hover:bg-red-600 text-white"
-                        onClick={() => {
-                          // TODO: Implement repair request
-                          showError('수리 요청 기능은 곧 제공될 예정입니다.');
-                        }}
-                      >
-                        <i className="fas fa-tools mr-1"></i>
-                        수리 요청
-                      </Button>
-                    )}
-                  </div>
-                </div>
+                  pc={pc}
+                  schedules={schedules.map((s) => ({
+                    id: s.id,
+                    authorName: s.authorName,
+                  }))}
+                  onMonitoring={(id) => {
+                    // TODO: Implement monitoring modal
+                    showError('모니터링 기능은 곧 제공될 예정입니다.');
+                  }}
+                  onSettings={(id) => {
+                    // TODO: Implement settings modal
+                    showError('설정 기능은 곧 제공될 예정입니다.');
+                  }}
+                  onRestart={(id) => {
+                    // TODO: Implement restart
+                    showError('재시작 기능은 곧 제공될 예정입니다.');
+                  }}
+                  onRepair={(id) => {
+                    // TODO: Implement repair request
+                    showError('수리 요청 기능은 곧 제공될 예정입니다.');
+                  }}
+                  formatDateTime={formatDateTime}
+                />
               ))}
             </div>
           )}

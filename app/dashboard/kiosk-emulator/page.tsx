@@ -641,13 +641,13 @@ export default function KioskEmulatorPage() {
                     </h3>
                     <div className="grid grid-cols-3 gap-2">
                       {dummyTemplateIds.map((templateId, index) => (
-                        <Button
-                          key={templateId}
-                          onClick={() => handleVideoTemplateSelected(templateId)}
-                          className="bg-orange-500 hover:bg-orange-600 text-white"
-                        >
+                          <Button
+                            key={templateId}
+                            onClick={() => handleVideoTemplateSelected(templateId)}
+                            className="bg-orange-500 hover:bg-orange-600 text-white"
+                          >
                           템플릿 {index + 1}
-                        </Button>
+                          </Button>
                       ))}
                     </div>
                   </div>
