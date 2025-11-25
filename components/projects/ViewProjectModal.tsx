@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Project } from '@/app/dashboard/projects/page';
 import { cn } from '@/lib/utils/cn';
+import { projectsApi } from '@/lib/api/projects';
+import { apiClient } from '@/lib/api/client';
 
 interface ViewProjectModalProps {
   project: Project;
@@ -15,7 +17,11 @@ interface Kiosk {
   id: string;
   name: string;
   location: string;
-  status: 'online' | 'warning' | 'offline';
+  ipAddress?: string;
+  status: 'online' | 'offline';
+  lastConnection?: string | Date;
+  todayUsers?: number;
+  todayRevenue?: number;
 }
 
 interface ContentPC {
@@ -33,51 +39,7 @@ interface Activity {
   user?: string;
 }
 
-const mockKiosks: Kiosk[] = [
-  {
-    id: 'kiosk1',
-    name: '키오스크 #1',
-    location: '강남점 - 1층 로비',
-    status: 'online',
-  },
-  {
-    id: 'kiosk2',
-    name: '키오스크 #2',
-    location: '강남점 - 2층 로비',
-    status: 'online',
-  },
-];
-
-const mockContentPCs: ContentPC[] = [
-  {
-    id: 'pc1',
-    name: 'Content PC #1',
-    location: '강남점 - 1층',
-    displayCount: 3,
-    status: 'online',
-  },
-  {
-    id: 'pc2',
-    name: 'Content PC #2',
-    location: '강남점 - 1층',
-    displayCount: 2,
-    status: 'online',
-  },
-  {
-    id: 'pc3',
-    name: 'Content PC #3',
-    location: '강남점 - 2층',
-    displayCount: 2,
-    status: 'online',
-  },
-  {
-    id: 'pc4',
-    name: 'Content PC #4',
-    location: '강남점 - 2층',
-    displayCount: 1,
-    status: 'online',
-  },
-];
+// Removed mock data - will fetch from API
 
 const mockActivities: Activity[] = [
   {
@@ -109,6 +71,10 @@ export function ViewProjectModal({ project, onClose }: ViewProjectModalProps) {
   const [activeTab, setActiveTab] = useState<
     'overview' | 'kiosk' | 'contentpc' | 'statistics' | 'activity'
   >('overview');
+  const [projectDetails, setProjectDetails] = useState<Project | null>(null);
+  const [kiosks, setKiosks] = useState<Kiosk[]>([]);
+  const [contentPCs, setContentPCs] = useState<ContentPC[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const getStatusText = (status: string) => {
     switch (status) {
@@ -153,8 +119,6 @@ export function ViewProjectModal({ project, onClose }: ViewProjectModalProps) {
     switch (status) {
       case 'online':
         return '온라인';
-      case 'warning':
-        return '경고';
       case 'offline':
         return '오프라인';
       default:
@@ -162,11 +126,62 @@ export function ViewProjectModal({ project, onClose }: ViewProjectModalProps) {
     }
   };
 
-  // 프로젝트에 연결된 키오스크 필터링 (실제로는 API에서 가져와야 함)
-  const projectKiosks = mockKiosks.filter((k) => k.location.includes(project.name.split(' ')[0]));
-  const projectContentPCs = mockContentPCs.filter((pc) =>
-    pc.location.includes(project.name.split(' ')[0])
-  );
+  // Load project details with kiosks and content PCs
+  useEffect(() => {
+    const loadProjectDetails = async () => {
+      try {
+        setIsLoading(true);
+        const details = await projectsApi.getById(project.id);
+        setProjectDetails(details);
+        
+        // Extract kiosks from project details
+        if (details.kiosks && Array.isArray(details.kiosks)) {
+          const kiosksData = details.kiosks.map((k: any) => ({
+            id: k.id,
+            name: k.name || `키오스크 #${k.id.slice(0, 8)}`,
+            location: k.location || project.location,
+            ipAddress: k.ipAddress,
+            status: k.status === 'ONLINE' || k.status === 'online' ? 'online' : 'offline',
+            lastConnection: k.lastConnection,
+            todayUsers: k.todayUsers || 0,
+            todayRevenue: k.todayRevenue || 0,
+          }));
+          setKiosks(kiosksData);
+        } else {
+          setKiosks([]);
+        }
+
+        // Load Content PCs for this project
+        try {
+          const response = await apiClient.get('/schedules/content-pcs', {
+            params: { projectId: project.id },
+          });
+          const responseData = response.data?.data || response.data;
+          const pcsList = Array.isArray(responseData) ? responseData : [];
+          
+          const contentPCsData = pcsList.map((pc: any) => ({
+            id: pc.id,
+            name: pc.name || `Content PC #${pc.id.slice(0, 8)}`,
+            location: project.location,
+            displayCount: pc.displayCount || 1,
+            status: pc.status === 'ONLINE' || pc.status === 'online' ? 'online' : 'offline',
+          }));
+          setContentPCs(contentPCsData);
+        } catch (error) {
+          console.error('Failed to load Content PCs:', error);
+          setContentPCs([]);
+        }
+      } catch (error) {
+        console.error('Failed to load project details:', error);
+        setKiosks([]);
+        setContentPCs([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProjectDetails();
+  }, [project.id, project.location]);
 
   return (
     <>
@@ -281,7 +296,9 @@ export function ViewProjectModal({ project, onClose }: ViewProjectModalProps) {
                     <label className="block font-bold text-sm text-gray-600">
                       키오스크 수
                     </label>
-                    <p className="text-base text-gray-800">{project.kioskCount}대</p>
+                    <p className="text-base text-gray-800">
+                      {projectDetails?.kiosks?.length || project.kioskCount || 0}대
+                    </p>
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-4">
@@ -310,24 +327,41 @@ export function ViewProjectModal({ project, onClose }: ViewProjectModalProps) {
             {/* 키오스크 탭 */}
             {activeTab === 'kiosk' && (
               <div className="space-y-3">
-                {projectKiosks.length > 0 ? (
-                  projectKiosks.map((kiosk) => (
+                {isLoading ? (
+                  <div className="text-center text-gray-500 py-8">키오스크 정보를 불러오는 중...</div>
+                ) : kiosks.length > 0 ? (
+                  kiosks.map((kiosk) => (
                     <div
                       key={kiosk.id}
                       className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border-l-4 border-blue-500"
                     >
-                      <div>
+                      <div className="flex-1">
                         <h4 className="font-semibold text-gray-800 mb-1">{kiosk.name}</h4>
                         <p className="text-sm text-gray-600">{kiosk.location}</p>
-                      </div>
-                      <span
-                        className={cn(
-                          'px-3 py-1 rounded-full text-xs font-semibold',
-                          getKioskStatusClass(kiosk.status)
+                        {kiosk.ipAddress && (
+                          <p className="text-xs text-gray-500 mt-1">IP: {kiosk.ipAddress}</p>
                         )}
-                      >
-                        {getKioskStatusText(kiosk.status)}
-                      </span>
+                        {kiosk.lastConnection && (
+                          <p className="text-xs text-gray-500">
+                            마지막 연결: {new Date(kiosk.lastConnection).toLocaleString('ko-KR')}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <span
+                          className={cn(
+                            'px-3 py-1 rounded-full text-xs font-semibold',
+                            getKioskStatusClass(kiosk.status)
+                          )}
+                        >
+                          {getKioskStatusText(kiosk.status)}
+                        </span>
+                        {kiosk.todayUsers !== undefined && (
+                          <span className="text-xs text-gray-500">
+                            오늘 사용자: {kiosk.todayUsers}명
+                          </span>
+                        )}
+                      </div>
                     </div>
                   ))
                 ) : (
@@ -339,8 +373,10 @@ export function ViewProjectModal({ project, onClose }: ViewProjectModalProps) {
             {/* Content PC 탭 */}
             {activeTab === 'contentpc' && (
               <div className="space-y-3">
-                {projectContentPCs.length > 0 ? (
-                  projectContentPCs.map((pc) => (
+                {isLoading ? (
+                  <div className="text-center text-gray-500 py-8">Content PC 정보를 불러오는 중...</div>
+                ) : contentPCs.length > 0 ? (
+                  contentPCs.map((pc) => (
                     <div
                       key={pc.id}
                       className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border-l-4 border-green-500"
