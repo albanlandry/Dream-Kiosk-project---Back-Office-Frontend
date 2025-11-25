@@ -1,7 +1,9 @@
 "use client";
 
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
+import { LabelValuePair } from "@/components/ui/label-value-pair";
 
 interface Schedule {
   id: string;
@@ -82,7 +84,7 @@ export function ScheduleItem({
   return (
     <div
       className={cn(
-        "rounded-lg p-5 shadow-sm hover:shadow-md transition-all duration-300 border border-gray-200",
+        "rounded-lg p-5 shadow-sm hover:shadow-md transition-all duration-300 border border-gray-200 space-y-5",
         isActive ? "bg-gray-50 border-l-4" : "bg-white"
       )}
       style={{
@@ -91,7 +93,7 @@ export function ScheduleItem({
         borderLeftWidth: "4px",
       }}
     >
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-5">
         <div>
           <h4 className="text-lg font-semibold text-gray-800">
             {scheduleTitle}
@@ -102,31 +104,23 @@ export function ScheduleItem({
         </div>
         <div>{getStatusBadge(schedule.status)}</div>
       </div>
-      <div className="space-y-2 mb-3">
-        <div className="flex items-center">
-          <span className="text-sm text-gray-600 w-24">시작 시간:</span>
-          <span className="text-sm font-medium text-gray-800">
-            {formatDateTime(schedule.displayStart)}
-          </span>
-        </div>
-        <div className="flex items-center">
-          <span className="text-sm text-gray-600 w-24">종료 시간:</span>
-          <span className="text-sm font-medium text-gray-800">
-            {formatDateTime(schedule.displayEnd)}
-          </span>
-        </div>
-        <div className="flex items-center">
-          <span className="text-sm text-gray-600 w-24">재생 횟수:</span>
-          <span className="text-sm font-medium text-gray-800">
-            {formatPlayCount(schedule.playCount)}
-          </span>
-        </div>
-        <div className="flex items-center">
-          <span className="text-sm text-gray-600 w-24">우선순위:</span>
-          <span className="text-sm font-medium text-gray-800">
-            {getPriorityText(schedule.priority)}
-          </span>
-        </div>
+      <div className="flex gap-4 justify-between mb-6">
+        <LabelValuePair
+          label="시작 시간:"
+          value={formatDateTime(schedule.displayStart)}
+        />
+        <LabelValuePair
+          label="종료 시간:"
+          value={formatDateTime(schedule.displayEnd)}
+        />
+        <LabelValuePair
+          label="재생 횟수:"
+          value={formatPlayCount(schedule.playCount)}
+        />
+        <LabelValuePair
+          label="우선순위:"
+          value={getPriorityText(schedule.priority)}
+        />
       </div>
       <div className="flex gap-2">
         <Button

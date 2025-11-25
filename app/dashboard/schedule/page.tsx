@@ -315,7 +315,6 @@ export default function ScheduleManagementPage() {
       });
 
       const data = response.data?.data || response.data || {};
-      console.log('Calendar Data:', data);
       setCalendarData(data);
     } catch (error) {
       console.error('Failed to load calendar data:', error);
@@ -331,6 +330,7 @@ export default function ScheduleManagementPage() {
       showSuccess('스케줄이 삭제되었습니다.');
       loadSchedules();
       loadStatistics();
+      loadCalendarData(); // Refresh calendar view
     } catch (error: any) {
       showError(error.response?.data?.message || '스케줄 삭제에 실패했습니다.');
     }
@@ -344,6 +344,7 @@ export default function ScheduleManagementPage() {
       showSuccess('스케줄이 중지되었습니다.');
       loadSchedules();
       loadStatistics();
+      loadCalendarData(); // Refresh calendar view
     } catch (error: any) {
       showError(error.response?.data?.message || '스케줄 중지에 실패했습니다.');
     }
@@ -355,6 +356,7 @@ export default function ScheduleManagementPage() {
       showSuccess('스케줄이 재실행되었습니다.');
       loadSchedules();
       loadStatistics();
+      loadCalendarData(); // Refresh calendar view
     } catch (error: any) {
       showError(error.response?.data?.message || '스케줄 재실행에 실패했습니다.');
     }
@@ -384,14 +386,22 @@ export default function ScheduleManagementPage() {
   };
 
   const formatDateTime = (dateString: string) => {
+
     const date = new Date(dateString);
-    return date.toLocaleString('ko-KR', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+
+    // return date.toLocaleString('ko-KR', {
+    //   year: 'numeric',
+    //   month: '2-digit',
+    //   day: '2-digit',
+    //   hour: '2-digit',
+    //   minute: '2-digit',
+    // });
   };
 
   const formatDate = (dateString: string) => {
@@ -668,6 +678,7 @@ export default function ScheduleManagementPage() {
           setShowCreateModal(false);
           loadSchedules();
           loadStatistics();
+          loadCalendarData(); // Refresh calendar view
         }}
       />
     </>
