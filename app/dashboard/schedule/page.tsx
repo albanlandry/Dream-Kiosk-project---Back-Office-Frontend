@@ -15,6 +15,9 @@ import { CreateScheduleModal } from '@/components/schedules/CreateScheduleModal'
 import { Calendar, CalendarDateData } from '@/components/ui/calendar';
 import { ScheduleItem } from '@/components/schedules/ScheduleItem';
 import { ContentPCItem } from '@/components/schedules/ContentPCItem';
+import { useRoutePermission } from '@/lib/hooks/use-route-permission';
+import { PermissionGate } from '@/components/auth/permission-gate';
+import { Button } from '@/components/ui/button';
 
 interface Schedule {
   id: string;
@@ -80,6 +83,9 @@ interface CalendarData {
 export default function ScheduleManagementPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  
+  // Protect route with permission check
+  useRoutePermission('schedule:read', '/dashboard');
 
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [contentPcs, setContentPcs] = useState<ContentPc[]>([]);
@@ -432,11 +438,17 @@ export default function ScheduleManagementPage() {
       <Header
         title="스케줄 관리"
         description="콘텐츠 재생 스케줄 및 Content PC 관리"
-        action={{
-          label: '새 스케줄 생성',
-          icon: 'fas fa-plus',
-          onClick: () => setShowCreateModal(true),
-        }}
+        action={
+          <PermissionGate permission="schedule:create">
+            <Button
+              onClick={() => setShowCreateModal(true)}
+              className="bg-blue-500 hover:bg-blue-600 text-white"
+            >
+              <i className="fas fa-plus mr-2"></i>
+              새 스케줄 생성
+            </Button>
+          </PermissionGate>
+        }
       />
       <div className="p-8 min-h-screen bg-gray-50">
         {/* Statistics Cards */}

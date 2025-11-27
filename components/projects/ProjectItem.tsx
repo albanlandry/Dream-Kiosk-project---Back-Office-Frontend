@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/cn';
 import { Project } from '@/app/dashboard/projects/page';
+import { PermissionGate } from '@/components/auth/permission-gate';
 
 interface ProjectItemProps {
   project: Project;
@@ -105,64 +106,80 @@ export function ProjectItem({
         </div>
 
         <div className="flex gap-2 flex-wrap">
-          <Button
-            onClick={() => onView(project)}
-            className="bg-blue-500 hover:bg-blue-600 text-white text-sm"
-          >
-            <i className="fas fa-eye mr-2"></i>상세보기
-          </Button>
-          <Button
-            onClick={() => onEdit(project)}
-            className="bg-gray-500 hover:bg-gray-600 text-white text-sm"
-          >
-            <i className="fas fa-cog mr-2"></i>설정
-          </Button>
+          <PermissionGate permission="project:read">
+            <Button
+              onClick={() => onView(project)}
+              className="bg-blue-500 hover:bg-blue-600 text-white text-sm"
+            >
+              <i className="fas fa-eye mr-2"></i>상세보기
+            </Button>
+          </PermissionGate>
+          <PermissionGate permission="project:update">
+            <Button
+              onClick={() => onEdit(project)}
+              className="bg-gray-500 hover:bg-gray-600 text-white text-sm"
+            >
+              <i className="fas fa-cog mr-2"></i>설정
+            </Button>
+          </PermissionGate>
           {project.status === 'active' && (
             <>
-              <Button
-                onClick={() => onPause(project)}
-                className="bg-yellow-500 hover:bg-yellow-600 text-white text-sm"
-              >
-                <i className="fas fa-pause mr-2"></i>일시정지
-              </Button>
-              <Button
-                onClick={() => onStop(project)}
-                className="bg-red-500 hover:bg-red-600 text-white text-sm"
-              >
-                <i className="fas fa-stop mr-2"></i>종료
-              </Button>
+              <PermissionGate permission="project:pause">
+                <Button
+                  onClick={() => onPause(project)}
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white text-sm"
+                >
+                  <i className="fas fa-pause mr-2"></i>일시정지
+                </Button>
+              </PermissionGate>
+              <PermissionGate permission="project:stop">
+                <Button
+                  onClick={() => onStop(project)}
+                  className="bg-red-500 hover:bg-red-600 text-white text-sm"
+                >
+                  <i className="fas fa-stop mr-2"></i>종료
+                </Button>
+              </PermissionGate>
             </>
           )}
           {project.status === 'paused' && (
             <>
-              <Button
-                onClick={() => onResume(project)}
-                className="bg-green-500 hover:bg-green-600 text-white text-sm"
-              >
-                <i className="fas fa-play mr-2"></i>재시작
-              </Button>
-              <Button
-                onClick={() => onStop(project)}
-                className="bg-red-500 hover:bg-red-600 text-white text-sm"
-              >
-                <i className="fas fa-stop mr-2"></i>종료
-              </Button>
+              <PermissionGate permission="project:resume">
+                <Button
+                  onClick={() => onResume(project)}
+                  className="bg-green-500 hover:bg-green-600 text-white text-sm"
+                >
+                  <i className="fas fa-play mr-2"></i>재시작
+                </Button>
+              </PermissionGate>
+              <PermissionGate permission="project:stop">
+                <Button
+                  onClick={() => onStop(project)}
+                  className="bg-red-500 hover:bg-red-600 text-white text-sm"
+                >
+                  <i className="fas fa-stop mr-2"></i>종료
+                </Button>
+              </PermissionGate>
             </>
           )}
           {project.status === 'stopped' && (
             <>
-              <Button
-                onClick={() => onView(project)}
-                className="bg-blue-500 hover:bg-blue-600 text-white text-sm"
-              >
-                <i className="fas fa-download mr-2"></i>리포트
-              </Button>
-              <Button
-                onClick={() => onDelete(project)}
-                className="bg-red-500 hover:bg-red-600 text-white text-sm"
-              >
-                <i className="fas fa-trash mr-2"></i>삭제
-              </Button>
+              <PermissionGate permission="project:read">
+                <Button
+                  onClick={() => onView(project)}
+                  className="bg-blue-500 hover:bg-blue-600 text-white text-sm"
+                >
+                  <i className="fas fa-download mr-2"></i>리포트
+                </Button>
+              </PermissionGate>
+              <PermissionGate permission="project:delete">
+                <Button
+                  onClick={() => onDelete(project)}
+                  className="bg-red-500 hover:bg-red-600 text-white text-sm"
+                >
+                  <i className="fas fa-trash mr-2"></i>삭제
+                </Button>
+              </PermissionGate>
             </>
           )}
         </div>

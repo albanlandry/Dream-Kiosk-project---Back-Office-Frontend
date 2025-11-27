@@ -10,6 +10,8 @@ import { UploadVideoModal } from '@/components/content/UploadVideoModal';
 import { cn } from '@/lib/utils/cn';
 import { getResourceThumbnailUrl } from '@/lib/utils/thumbnail';
 import { Pagination } from '@/components/ui/pagination';
+import { useRoutePermission } from '@/lib/hooks/use-route-permission';
+import { PermissionGate } from '@/components/auth/permission-gate';
 
 interface Video {
   id: string;
@@ -42,6 +44,9 @@ export default function VideosManagementPage() {
     hasMore: false,
   });
   const { showSuccess, showError } = useToastStore();
+
+  // Protect route with permission check
+  useRoutePermission('content:read', '/dashboard');
 
   useEffect(() => {
     loadVideos();
@@ -206,11 +211,17 @@ export default function VideosManagementPage() {
       <Header
         title="비디오 관리"
         description="비디오 목록 및 관리"
-        action={{
-          label: '비디오 업로드',
-          icon: 'fas fa-upload',
-          onClick: () => setShowUploadModal(true),
-        }}
+        action={
+          <PermissionGate permission="content:create">
+            <Button
+              onClick={() => setShowUploadModal(true)}
+              className="bg-blue-500 hover:bg-blue-600 text-white"
+            >
+              <i className="fas fa-upload mr-2"></i>
+              비디오 업로드
+            </Button>
+          </PermissionGate>
+        }
       />
       <div className="p-8 min-h-screen">
         {/* 검색 및 일괄 작업 */}
@@ -350,14 +361,16 @@ export default function VideosManagementPage() {
                         <i className="fas fa-play mr-2"></i>재생
                       </Button>
                     )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleDelete(video.id)}
-                      className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <i className="fas fa-trash mr-2"></i>삭제
-                    </Button>
+                    <PermissionGate permission="content:delete">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDelete(video.id)}
+                        className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <i className="fas fa-trash mr-2"></i>삭제
+                      </Button>
+                    </PermissionGate>
                   </div>
                 </div>
               </div>

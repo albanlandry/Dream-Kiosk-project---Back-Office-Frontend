@@ -10,6 +10,8 @@ import { UploadImageModal } from '@/components/content/UploadImageModal';
 import { cn } from '@/lib/utils/cn';
 import { getResourceThumbnailUrl } from '@/lib/utils/thumbnail';
 import { Pagination } from '@/components/ui/pagination';
+import { useRoutePermission } from '@/lib/hooks/use-route-permission';
+import { PermissionGate } from '@/components/auth/permission-gate';
 
 interface Image {
   id: string;
@@ -42,6 +44,9 @@ export default function ImagesManagementPage() {
     hasMore: false,
   });
   const { showSuccess, showError } = useToastStore();
+
+  // Protect route with permission check
+  useRoutePermission('content:read', '/dashboard');
 
   useEffect(() => {
     loadImages();
@@ -242,11 +247,17 @@ export default function ImagesManagementPage() {
       <Header
         title="이미지 관리"
         description="이미지 업로드 및 관리"
-        action={{
-          label: '이미지 업로드',
-          icon: 'fas fa-upload',
-          onClick: () => setShowUploadModal(true),
-        }}
+        action={
+          <PermissionGate permission="content:create">
+            <Button
+              onClick={() => setShowUploadModal(true)}
+              className="bg-blue-500 hover:bg-blue-600 text-white"
+            >
+              <i className="fas fa-upload mr-2"></i>
+              이미지 업로드
+            </Button>
+          </PermissionGate>
+        }
       />
       <div className="p-8 min-h-screen">
         {/* 검색 및 일괄 작업 */}
@@ -393,23 +404,27 @@ export default function ImagesManagementPage() {
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleToggleActive(image.id, image.isActive)}
-                    className="flex-1"
-                  >
-                    <i className={cn('mr-1', image.isActive ? 'fas fa-eye-slash' : 'fas fa-eye')}></i>
-                    {image.isActive ? '비활성화' : '활성화'}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDelete(image.id)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <i className="fas fa-trash"></i>
-                  </Button>
+                  <PermissionGate permission="content:update">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleToggleActive(image.id, image.isActive)}
+                      className="flex-1"
+                    >
+                      <i className={cn('mr-1', image.isActive ? 'fas fa-eye-slash' : 'fas fa-eye')}></i>
+                      {image.isActive ? '비활성화' : '활성화'}
+                    </Button>
+                  </PermissionGate>
+                  <PermissionGate permission="content:delete">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDelete(image.id)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <i className="fas fa-trash"></i>
+                    </Button>
+                  </PermissionGate>
                 </div>
               </div>
             ))}

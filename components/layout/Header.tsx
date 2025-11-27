@@ -11,7 +11,7 @@ interface HeaderProps {
     label: string;
     onClick: () => void;
     icon?: string;
-  };
+  } | React.ReactNode;
 }
 
 export function Header({ title, description, action }: HeaderProps) {
@@ -33,13 +33,17 @@ export function Header({ title, description, action }: HeaderProps) {
           </div>
           <div className="flex items-center gap-4">
             {action && (
-              <Button
-                onClick={action.onClick}
-                className="bg-blue-500 hover:bg-blue-600 text-white"
-              >
-                {action.icon && <i className={cn('mr-2', action.icon)}></i>}
-                {action.label}
-              </Button>
+              typeof action === 'object' && 'onClick' in action ? (
+                <Button
+                  onClick={action.onClick}
+                  className="bg-blue-500 hover:bg-blue-600 text-white"
+                >
+                  {action.icon && <i className={cn('mr-2', action.icon)}></i>}
+                  {action.label}
+                </Button>
+              ) : (
+                action
+              )
             )}
             <div className="flex items-center gap-2 text-gray-600 text-sm">
               <span>{admin?.name || '관리자'}</span>

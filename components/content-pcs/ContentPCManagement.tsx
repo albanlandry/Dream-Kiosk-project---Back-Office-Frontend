@@ -11,6 +11,7 @@ import { useToastStore } from '@/lib/store/toastStore';
 import { LoadingModal } from '@/components/ui/loading-modal';
 import { SearchableSelect, SearchableSelectOption } from '@/components/ui/searchable-select';
 import { projectsApi } from '@/lib/api/projects';
+import { PermissionGate } from '@/components/auth/permission-gate';
 
 interface ContentPCManagementProps {
   projectId?: string;
@@ -167,13 +168,15 @@ export function ContentPCManagement({ projectId, onClose }: ContentPCManagementP
                 프로젝트로 돌아가기
               </Button>
             )}
-            <Button
-              onClick={() => setShowAddModal(true)}
-              className="bg-purple-500 hover:bg-purple-600 text-white"
-            >
-              <i className="fas fa-plus mr-2"></i>
-              새 Content PC 추가
-            </Button>
+            <PermissionGate permission="content-pc:create">
+              <Button
+                onClick={() => setShowAddModal(true)}
+                className="bg-purple-500 hover:bg-purple-600 text-white"
+              >
+                <i className="fas fa-plus mr-2"></i>
+                새 Content PC 추가
+              </Button>
+            </PermissionGate>
           </div>
         </div>
 

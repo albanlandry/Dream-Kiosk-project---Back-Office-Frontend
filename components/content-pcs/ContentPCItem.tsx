@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { ContentPC } from '@/lib/api/content-pcs';
 import { cn } from '@/lib/utils/cn';
+import { PermissionGate } from '@/components/auth/permission-gate';
 
 interface ContentPCItemProps {
   pc: ContentPC;
@@ -90,72 +91,84 @@ export function ContentPCItem({
       </div>
 
       <div className="flex gap-2 flex-wrap">
-        <Button
-          size="sm"
-          className="bg-blue-500 hover:bg-blue-600 text-white"
-          onClick={onViewResources}
-        >
-          <i className="fas fa-chart-line mr-1"></i>
-          리소스
-        </Button>
-        {pc.status === 'offline' ? (
+        <PermissionGate permission="content-pc:read">
           <Button
             size="sm"
-            className="bg-green-500 hover:bg-green-600 text-white"
-            onClick={onStart}
+            className="bg-blue-500 hover:bg-blue-600 text-white"
+            onClick={onViewResources}
           >
-            <i className="fas fa-play mr-1"></i>
-            시작
+            <i className="fas fa-chart-line mr-1"></i>
+            리소스
           </Button>
-        ) : (
+        </PermissionGate>
+        <PermissionGate permission="content-pc:manage">
+          {pc.status === 'offline' ? (
+            <Button
+              size="sm"
+              className="bg-green-500 hover:bg-green-600 text-white"
+              onClick={onStart}
+            >
+              <i className="fas fa-play mr-1"></i>
+              시작
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              className="bg-yellow-500 hover:bg-yellow-600 text-white"
+              onClick={onRestart}
+            >
+              <i className="fas fa-redo mr-1"></i>
+              재시작
+            </Button>
+          )}
+        </PermissionGate>
+        <PermissionGate permission="content-pc:update">
           <Button
             size="sm"
-            className="bg-yellow-500 hover:bg-yellow-600 text-white"
-            onClick={onRestart}
+            className="bg-purple-500 hover:bg-purple-600 text-white"
+            onClick={onEdit}
           >
-            <i className="fas fa-redo mr-1"></i>
-            재시작
+            <i className="fas fa-edit mr-1"></i>
+            수정
           </Button>
-        )}
-        <Button
-          size="sm"
-          className="bg-purple-500 hover:bg-purple-600 text-white"
-          onClick={onEdit}
-        >
-          <i className="fas fa-edit mr-1"></i>
-          수정
-        </Button>
+        </PermissionGate>
         {pc.projectId ? (
-          <Button
-            size="sm"
-            className="bg-orange-500 hover:bg-orange-600 text-white"
-            onClick={onDetach}
-          >
-            <i className="fas fa-unlink mr-1"></i>
-            분리
-          </Button>
+          <PermissionGate permission="content-pc:update">
+            <Button
+              size="sm"
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+              onClick={onDetach}
+            >
+              <i className="fas fa-unlink mr-1"></i>
+              분리
+            </Button>
+          </PermissionGate>
         ) : (
+          <PermissionGate permission="content-pc:update">
+            <Button
+              size="sm"
+              className="bg-cyan-500 hover:bg-cyan-600 text-white"
+              onClick={() => {
+                // Show project selection dialog
+                const projectId = prompt('프로젝트 ID를 입력하세요:');
+                if (projectId) onAttach(projectId);
+              }}
+            >
+              <i className="fas fa-link mr-1"></i>
+              연결
+            </Button>
+          </PermissionGate>
+        )}
+        <PermissionGate permission="content-pc:delete">
           <Button
             size="sm"
-            className="bg-cyan-500 hover:bg-cyan-600 text-white"
-            onClick={() => {
-              // Show project selection dialog
-              const projectId = prompt('프로젝트 ID를 입력하세요:');
-              if (projectId) onAttach(projectId);
-            }}
+            className="bg-red-500 hover:bg-red-600 text-white"
+            onClick={onDelete}
           >
-            <i className="fas fa-link mr-1"></i>
-            연결
+            <i className="fas fa-trash mr-1"></i>
+            삭제
           </Button>
-        )}
-        <Button
-          size="sm"
-          className="bg-red-500 hover:bg-red-600 text-white"
-          onClick={onDelete}
-        >
-          <i className="fas fa-trash mr-1"></i>
-          삭제
-        </Button>
+        </PermissionGate>
       </div>
     </div>
   );

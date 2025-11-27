@@ -5,6 +5,7 @@ import { QueryProvider } from '@/components/providers/QueryProvider';
 import { ToastProvider } from '@/components/providers/ToastProvider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { LoadingOverlay } from '@/components/LoadingOverlay';
+import { PermissionProvider } from '@/lib/contexts/permission-context';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -26,9 +27,11 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased`}>
         <ErrorBoundary>
           <QueryProvider>
-            {children}
-            <ToastProvider />
-            <LoadingOverlay />
+            <PermissionProvider>
+              {children}
+              <ToastProvider />
+              <LoadingOverlay />
+            </PermissionProvider>
           </QueryProvider>
         </ErrorBoundary>
       </body>

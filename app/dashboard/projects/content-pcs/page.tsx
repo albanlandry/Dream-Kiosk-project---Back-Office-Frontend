@@ -4,11 +4,15 @@ import { Header } from '@/components/layout/Header';
 import { ContentPCManagement } from '@/components/content-pcs/ContentPCManagement';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useRoutePermission } from '@/lib/hooks/use-route-permission';
 
 export default function ContentPCManagementPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [projectId, setProjectId] = useState<string | undefined>(undefined);
+
+  // Protect route with permission check
+  useRoutePermission('content-pc:read', '/dashboard');
 
   useEffect(() => {
     const projectIdParam = searchParams.get('projectId');

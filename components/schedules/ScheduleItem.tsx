@@ -4,6 +4,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
 import { LabelValuePair } from "@/components/ui/label-value-pair";
+import { PermissionGate } from "@/components/auth/permission-gate";
 
 interface Schedule {
   id: string;
@@ -123,55 +124,65 @@ export function ScheduleItem({
         />
       </div>
       <div className="flex gap-2">
-        <Button
-          size="sm"
-          className="bg-purple-500 hover:bg-purple-600 text-white"
-          onClick={() => onViewDetails?.(schedule.id)}
-        >
-          <i className="fas fa-eye mr-1"></i>
-          상세보기
-        </Button>
+        <PermissionGate permission="schedule:read">
+          <Button
+            size="sm"
+            className="bg-purple-500 hover:bg-purple-600 text-white"
+            onClick={() => onViewDetails?.(schedule.id)}
+          >
+            <i className="fas fa-eye mr-1"></i>
+            상세보기
+          </Button>
+        </PermissionGate>
         {/* Active schedules: show 수정 and 중지 */}
         {(schedule.status === "playing" || schedule.status === "scheduled") && (
           <>
-            <Button
-              size="sm"
-              className="bg-yellow-500 hover:bg-yellow-600 text-white"
-              onClick={() => onEdit?.(schedule.id)}
-            >
-              <i className="fas fa-edit mr-1"></i>
-              수정
-            </Button>
-            <Button
-              size="sm"
-              className="bg-red-500 hover:bg-red-600 text-white"
-              onClick={() => onStop?.(schedule.id)}
-            >
-              <i className="fas fa-stop mr-1"></i>
-              중지
-            </Button>
+            <PermissionGate permission="schedule:update">
+              <Button
+                size="sm"
+                className="bg-yellow-500 hover:bg-yellow-600 text-white"
+                onClick={() => onEdit?.(schedule.id)}
+              >
+                <i className="fas fa-edit mr-1"></i>
+                수정
+              </Button>
+            </PermissionGate>
+            <PermissionGate permission="schedule:stop">
+              <Button
+                size="sm"
+                className="bg-red-500 hover:bg-red-600 text-white"
+                onClick={() => onStop?.(schedule.id)}
+              >
+                <i className="fas fa-stop mr-1"></i>
+                중지
+              </Button>
+            </PermissionGate>
           </>
         )}
         {/* Stopped/Completed schedules: show 재실행 and 삭제 */}
         {(schedule.status === "completed" ||
           schedule.status === "cancelled") && (
           <>
-            <Button
-              size="sm"
-              className="bg-cyan-500 hover:bg-cyan-600 text-white"
-              onClick={() => onRestart?.(schedule.id)}
-            >
-              <i className="fas fa-redo mr-1"></i>
-              재실행
-            </Button>
-            <Button
-              size="sm"
-              className="bg-red-500 hover:bg-red-600 text-white"
-              onClick={() => onDelete?.(schedule.id)}
-            >
-              <i className="fas fa-trash mr-1"></i>
-              삭제
-            </Button>
+            <PermissionGate permission="schedule:restart">
+              <Button
+                size="sm"
+                className="bg-cyan-500 hover:bg-cyan-600 text-white"
+                onClick={() => onRestart?.(schedule.id)}
+              >
+                <i className="fas fa-redo mr-1"></i>
+                재실행
+              </Button>
+            </PermissionGate>
+            <PermissionGate permission="schedule:delete">
+              <Button
+                size="sm"
+                className="bg-red-500 hover:bg-red-600 text-white"
+                onClick={() => onDelete?.(schedule.id)}
+              >
+                <i className="fas fa-trash mr-1"></i>
+                삭제
+              </Button>
+            </PermissionGate>
           </>
         )}
       </div>

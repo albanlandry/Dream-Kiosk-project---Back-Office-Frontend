@@ -41,5 +41,10 @@ export const authApi = {
     const response = await apiClient.get<{ data: AdminProfile }>('/backoffice/auth/profile');
     return response.data.data;
   },
+
+  getPermissions: async (): Promise<string[]> => {
+    const response = await apiClient.get<{ data: string[] }>('/auth/permissions');
+    return response.data.data || [];
+  },
 };
 

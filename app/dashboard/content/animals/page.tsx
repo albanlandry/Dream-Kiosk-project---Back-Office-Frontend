@@ -11,6 +11,8 @@ import { Animal } from '@/lib/api/animals';
 import { cn } from '@/lib/utils/cn';
 import { getResourceThumbnailUrl } from '@/lib/utils/thumbnail';
 import { Pagination } from '@/components/ui/pagination';
+import { useRoutePermission } from '@/lib/hooks/use-route-permission';
+import { PermissionGate } from '@/components/auth/permission-gate';
 
 export default function AnimalsManagementPage() {
   const [animals, setAnimals] = useState<Animal[]>([]);
@@ -27,6 +29,9 @@ export default function AnimalsManagementPage() {
     hasMore: false,
   });
   const { showSuccess, showError } = useToastStore();
+
+  // Protect route with permission check
+  useRoutePermission('content:read', '/dashboard');
 
   useEffect(() => {
     loadAnimals();
@@ -183,13 +188,15 @@ export default function AnimalsManagementPage() {
                 </h1>
                 <p className="text-gray-600">수호동물을 관리합니다.</p>
               </div>
-              <Button
-                onClick={handleCreate}
-                className="bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white"
-              >
-                <i className="fas fa-plus mr-2"></i>
-                동물 추가
-              </Button>
+              <PermissionGate permission="content:create">
+                <Button
+                  onClick={handleCreate}
+                  className="bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white"
+                >
+                  <i className="fas fa-plus mr-2"></i>
+                  동물 추가
+                </Button>
+              </PermissionGate>
             </div>
 
             {/* 검색 */}
@@ -295,36 +302,42 @@ export default function AnimalsManagementPage() {
 
                   {/* 액션 버튼 */}
                   <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleEdit(animal)}
-                      className="flex-1"
-                    >
-                      <i className="fas fa-edit mr-1"></i>
-                      수정
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleToggleActive(animal.id, animal.isActive)}
-                      className={cn(
-                        animal.isActive
-                          ? 'text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50'
-                          : 'text-green-600 hover:text-green-700 hover:bg-green-50'
-                      )}
-                    >
-                      <i className={cn('mr-1', animal.isActive ? 'fas fa-eye-slash' : 'fas fa-eye')}></i>
-                      {animal.isActive ? '비활성' : '활성'}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleDelete(animal.id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <i className="fas fa-trash"></i>
-                    </Button>
+                    <PermissionGate permission="content:update">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEdit(animal)}
+                        className="flex-1"
+                      >
+                        <i className="fas fa-edit mr-1"></i>
+                        수정
+                      </Button>
+                    </PermissionGate>
+                    <PermissionGate permission="content:update">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleToggleActive(animal.id, animal.isActive)}
+                        className={cn(
+                          animal.isActive
+                            ? 'text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50'
+                            : 'text-green-600 hover:text-green-700 hover:bg-green-50'
+                        )}
+                      >
+                        <i className={cn('mr-1', animal.isActive ? 'fas fa-eye-slash' : 'fas fa-eye')}></i>
+                        {animal.isActive ? '비활성' : '활성'}
+                      </Button>
+                    </PermissionGate>
+                    <PermissionGate permission="content:delete">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDelete(animal.id)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <i className="fas fa-trash"></i>
+                      </Button>
+                    </PermissionGate>
                   </div>
                 </div>
               ))}

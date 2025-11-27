@@ -13,6 +13,8 @@ import { useToastStore } from '@/lib/store/toastStore';
 import { LoadingModal } from '@/components/ui/loading-modal';
 import { projectsApi, type Project as ApiProject } from '@/lib/api/projects';
 import { useRouter } from 'next/navigation';
+import { useRoutePermission } from '@/lib/hooks/use-route-permission';
+import { PermissionGate } from '@/components/auth/permission-gate';
 
 export interface Project {
   id: string;
@@ -60,6 +62,9 @@ export default function ProjectManagementPage() {
   const [loadingMessage, setLoadingMessage] = useState('');
   const { showSuccess, showError, showWarning } = useToastStore();
   const router = useRouter();
+
+  // Protect route with permission check
+  useRoutePermission('project:read', '/dashboard');
 
   // Load projects from database on mount
   useEffect(() => {
@@ -190,11 +195,17 @@ export default function ProjectManagementPage() {
       <Header
         title="프로젝트 관리"
         description="프로젝트 생성, 설정 및 관리"
-        action={{
-          label: '새 프로젝트 생성',
-          icon: 'fas fa-plus',
-          onClick: () => setShowAddModal(true),
-        }}
+        action={
+          <PermissionGate permission="project:create">
+            <Button
+              onClick={() => setShowAddModal(true)}
+              className="bg-purple-500 hover:bg-purple-600 text-white"
+            >
+              <i className="fas fa-plus mr-2"></i>
+              새 프로젝트 생성
+            </Button>
+          </PermissionGate>
+        }
       />
       <div className="p-8 min-h-screen">
 
@@ -229,13 +240,15 @@ export default function ProjectManagementPage() {
 
         {/* Content PC Management Button */}
         <div className="mb-6 flex justify-end">
-          <Button
-            onClick={() => handleManageContentPCs()}
-            className="bg-purple-500 hover:bg-purple-600 text-white"
-          >
-            <i className="fas fa-desktop mr-2"></i>
-            Content PC 관리
-          </Button>
+          <PermissionGate permission="content-pc:read">
+            <Button
+              onClick={() => handleManageContentPCs()}
+              className="bg-purple-500 hover:bg-purple-600 text-white"
+            >
+              <i className="fas fa-desktop mr-2"></i>
+              Content PC 관리
+            </Button>
+          </PermissionGate>
         </div>
 
         {/* 프로젝트 목록 */}
