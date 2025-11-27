@@ -100,7 +100,8 @@ export function EditProjectModal({ project, onClose, onSuccess }: EditProjectMod
                 <label className="block text-sm font-semibold text-gray-800 mb-2">
                   키오스크 수 *
                 </label>
-                <Input
+                <p className="text-sm text-gray-800 p-2 bg-gray-100 rounded-lg border border-gray-200">{formData.kioskCount}</p>
+                {/* <Input
                   type="number"
                   min="1"
                   value={formData.kioskCount}
@@ -109,13 +110,14 @@ export function EditProjectModal({ project, onClose, onSuccess }: EditProjectMod
                   }
                   required
                   className="w-full"
-                />
+                /> */}
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-800 mb-2">
                   Content PC 수 *
                 </label>
-                <Input
+                <p className="text-sm text-gray-800 p-2 bg-gray-100 rounded-lg border border-gray-200">{formData.contentPCCount}</p>
+                {/* <Input
                   type="number"
                   min="1"
                   value={formData.contentPCCount}
@@ -124,7 +126,7 @@ export function EditProjectModal({ project, onClose, onSuccess }: EditProjectMod
                   }
                   required
                   className="w-full"
-                />
+                /> */}
               </div>
             </div>
 
