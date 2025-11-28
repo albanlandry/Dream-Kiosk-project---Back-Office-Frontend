@@ -51,6 +51,14 @@ export default function ProfilePage() {
   });
 
   const handleEdit = () => {
+    // Auto-fill form with current profile data when entering edit mode
+    const currentProfile = profile || admin;
+    if (currentProfile) {
+      setFormData({
+        name: currentProfile.name || '',
+        email: currentProfile.email || '',
+      });
+    }
     setIsEditing(true);
   };
 

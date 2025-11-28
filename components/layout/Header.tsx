@@ -1,7 +1,13 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store/authStore';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils/cn';
 
 interface HeaderProps {
@@ -15,7 +21,12 @@ interface HeaderProps {
 }
 
 export function Header({ title, description, action }: HeaderProps) {
+  const router = useRouter();
   const { logout, admin } = useAuthStore();
+
+  const handleProfileClick = () => {
+    router.push('/dashboard/profile');
+  };
 
   return (
     <>
@@ -45,17 +56,30 @@ export function Header({ title, description, action }: HeaderProps) {
                 action
               )
             )}
-            <div className="flex items-center gap-2 text-gray-600 text-sm">
-              <span>{admin?.name || '관리자'}</span>
-              <i className="fas fa-user-circle text-2xl text-blue-500"></i>
-            </div>
-            <Button
-              onClick={logout}
-              className="bg-red-500 hover:bg-red-600 text-white"
+            <DropdownMenu
+              trigger={
+                <div className="flex items-center gap-2 text-gray-600 text-sm cursor-pointer hover:text-gray-800 transition-colors">
+                  <span>{admin?.name || '관리자'}</span>
+                  <i className="fas fa-user-circle text-2xl text-blue-500"></i>
+                </div>
+              }
+              align="right"
             >
-              <i className="fas fa-sign-out-alt mr-2"></i>
-              로그아웃
-            </Button>
+              <DropdownMenuItem
+                onClick={handleProfileClick}
+                icon="fas fa-user"
+              >
+                프로필
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={logout}
+                icon="fas fa-sign-out-alt"
+                className="text-red-600 hover:bg-red-50"
+              >
+                로그아웃
+              </DropdownMenuItem>
+            </DropdownMenu>
           </div>
         </div>
       </header>
