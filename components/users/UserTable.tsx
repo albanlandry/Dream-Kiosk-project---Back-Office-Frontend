@@ -3,6 +3,7 @@
 import { User } from '@/app/dashboard/users/page';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/cn';
+import { maskUserId } from '@/lib/utils/format';
 
 interface UserTableProps {
   users: User[];
@@ -144,7 +145,7 @@ export function UserTable({
                     </div>
                     <div>
                       <div className="font-semibold text-gray-800">{user.name}</div>
-                      <div className="text-sm text-gray-500">ID: {user.userId}</div>
+                      <div className="text-sm text-gray-500">ID: {maskUserId(user.userId)}</div>
                     </div>
                   </div>
                 </td>

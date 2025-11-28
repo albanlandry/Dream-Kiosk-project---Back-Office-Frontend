@@ -22,6 +22,9 @@ export interface User {
   userId: string;
   name: string;
   email: string;
+  phone?: string;
+  department?: string;
+  memo?: string;
   role: 'admin' | 'user' | 'viewer';
   status: 'active' | 'inactive' | 'suspended';
   joinDate: string;
@@ -34,6 +37,9 @@ const mockUsers: User[] = [
     userId: 'user001',
     name: '김철수',
     email: 'kim@example.com',
+    phone: '010-1234-5678',
+    department: '개발팀',
+    memo: '일반 사용자 계정',
     role: 'user',
     status: 'active',
     joinDate: '2024-12-01',
