@@ -9,25 +9,38 @@ import { generateSecurePassword } from '@/lib/utils/format';
 import { cn } from '@/lib/utils/cn';
 
 interface AddUserModalProps {
+  user?: User; // Optional: if provided, it's edit mode
   onClose: () => void;
   onSuccess: (user: User) => void;
 }
 
-export function AddUserModal({ onClose, onSuccess }: AddUserModalProps) {
+export function AddUserModal({ user, onClose, onSuccess }: AddUserModalProps) {
+  const isEditMode = !!user;
+  
+  // Initialize permissions based on user role
+  const getInitialPermissions = (role?: string) => {
+    switch (role) {
+      case 'admin':
+        return { read: true, write: true, admin: true };
+      case 'user':
+        return { read: true, write: true, admin: false };
+      case 'viewer':
+        return { read: true, write: false, admin: false };
+      default:
+        return { read: true, write: false, admin: false };
+    }
+  };
+  
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    department: '',
-    role: 'user' as 'admin' | 'user' | 'viewer',
-    status: 'active' as 'active' | 'inactive' | 'suspended',
+    name: user?.name || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    department: user?.department || '',
+    role: (user?.role || 'user') as 'admin' | 'user' | 'viewer',
+    status: (user?.status || 'active') as 'active' | 'inactive' | 'suspended',
     password: '',
-    memo: '',
-    permissions: {
-      read: true,
-      write: false,
-      admin: false,
-    },
+    memo: user?.memo || '',
+    permissions: getInitialPermissions(user?.role),
   });
   const [showPassword, setShowPassword] = useState(false);
 
@@ -39,22 +52,40 @@ export function AddUserModal({ onClose, onSuccess }: AddUserModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const newUser: User = {
-      id: Date.now().toString(),
-      userId: `user${Date.now()}`,
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      department: formData.department,
-      memo: formData.memo,
-      role: formData.role,
-      status: formData.status,
-      joinDate: new Date().toISOString().split('T')[0],
-      lastLogin: '-',
-    };
+    if (isEditMode && user) {
+      // Edit mode: update existing user
+      const updatedUser: User = {
+        ...user,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        department: formData.department,
+        memo: formData.memo,
+        role: formData.role,
+        status: formData.status,
+      };
 
-    // TODO: API call to create user
-    onSuccess(newUser);
+      // TODO: API call to update user
+      onSuccess(updatedUser);
+    } else {
+      // Create mode: create new user
+      const newUser: User = {
+        id: Date.now().toString(),
+        userId: `user${Date.now()}`,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        department: formData.department,
+        memo: formData.memo,
+        role: formData.role,
+        status: formData.status,
+        joinDate: new Date().toISOString().split('T')[0],
+        lastLogin: '-',
+      };
+
+      // TODO: API call to create user
+      onSuccess(newUser);
+    }
   };
 
   return (
@@ -67,7 +98,9 @@ export function AddUserModal({ onClose, onSuccess }: AddUserModalProps) {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white p-0">
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-800">새 사용자 추가</h2>
+            <h2 className="text-xl font-semibold text-gray-800">
+              {isEditMode ? '사용자 수정' : '새 사용자 추가'}
+            </h2>
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -181,39 +214,41 @@ export function AddUserModal({ onClose, onSuccess }: AddUserModalProps) {
                 </div>
               </div>
 
-              {/* 임시 비밀번호 - Full width */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-2">
-                  임시 비밀번호 *
-                </label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Input
-                      type={showPassword ? 'text' : 'password'}
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      placeholder="임시 비밀번호"
-                      required
-                      className="w-full pr-10"
-                    />
-                    <button
+              {/* 임시 비밀번호 - Full width (only show in create mode) */}
+              {!isEditMode && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-800 mb-2">
+                    임시 비밀번호 *
+                  </label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Input
+                        type={showPassword ? 'text' : 'password'}
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        placeholder="임시 비밀번호"
+                        required
+                        className="w-full pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        <i className={cn('fas', showPassword ? 'fa-eye-slash' : 'fa-eye')}></i>
+                      </button>
+                    </div>
+                    <Button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      onClick={handleGeneratePassword}
+                      className="bg-gray-700 hover:bg-gray-800 text-white px-4"
                     >
-                      <i className={cn('fas', showPassword ? 'fa-eye-slash' : 'fa-eye')}></i>
-                    </button>
+                      <i className="fas fa-sync-alt mr-2"></i>
+                      생성
+                    </Button>
                   </div>
-                  <Button
-                    type="button"
-                    onClick={handleGeneratePassword}
-                    className="bg-gray-700 hover:bg-gray-800 text-white px-4"
-                  >
-                    <i className="fas fa-sync-alt mr-2"></i>
-                    생성
-                  </Button>
                 </div>
-              </div>
+              )}
 
               {/* 메모 - Full width */}
               <div>
