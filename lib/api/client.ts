@@ -86,9 +86,13 @@ apiClient.interceptors.response.use(
     
     if (error.response?.status === 401) {
       // Handle unauthorized - clear token and redirect to login
-      Cookies.remove('auth-token');
+      // But skip redirect if we're already on the login page to avoid infinite loops
       if (typeof window !== 'undefined') {
-        window.location.href = '/login';
+        const isLoginPage = window.location.pathname === '/login';
+        Cookies.remove('auth-token');
+        if (!isLoginPage) {
+          window.location.href = '/login';
+        }
       }
     }
     return Promise.reject(error);

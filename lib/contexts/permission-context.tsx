@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
 import { useAuthStore } from '@/lib/store/authStore';
 
@@ -18,10 +19,12 @@ const PermissionContext = createContext<PermissionContextType | undefined>(undef
 export function PermissionProvider({ children }: { children: React.ReactNode }) {
   const [permissions, setPermissions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, token } = useAuthStore();
+  const pathname = usePathname();
 
   const loadPermissions = useCallback(async () => {
-    if (!isAuthenticated) {
+    // Skip loading permissions on login page or if not authenticated
+    if (!isAuthenticated || !token || pathname === '/login') {
       setPermissions([]);
       setIsLoading(false);
       return;
@@ -30,13 +33,19 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
     try {
       const perms = await authApi.getPermissions();
       setPermissions(perms);
-    } catch (error) {
-      console.error('Failed to load permissions:', error);
-      setPermissions([]);
+    } catch (error: any) {
+      // Silently handle 401 errors (user not authenticated)
+      // Don't log or redirect - just set empty permissions
+      if (error?.response?.status === 401) {
+        setPermissions([]);
+      } else {
+        console.error('Failed to load permissions:', error);
+        setPermissions([]);
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, token, pathname]);
 
   useEffect(() => {
     loadPermissions();
