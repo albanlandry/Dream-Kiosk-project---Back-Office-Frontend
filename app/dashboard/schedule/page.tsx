@@ -17,7 +17,6 @@ import { ScheduleItem } from '@/components/schedules/ScheduleItem';
 import { ContentPCItem } from '@/components/schedules/ContentPCItem';
 import { useRoutePermission } from '@/lib/hooks/use-route-permission';
 import { PermissionGate } from '@/components/auth/permission-gate';
-import { Button } from '@/components/ui/button';
 
 interface Schedule {
   id: string;
