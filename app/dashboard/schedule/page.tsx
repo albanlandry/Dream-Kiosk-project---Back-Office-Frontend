@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils/cn';
 import { StatCard } from '@/components/ui/stat-card';
 import { SearchableSelect, SearchableSelectOption } from '@/components/ui/searchable-select';
 import { CreateScheduleModal } from '@/components/schedules/CreateScheduleModal';
+import { ScheduleDetailModal } from '@/components/schedules/ScheduleDetailModal';
 import { Calendar, CalendarDateData } from '@/components/ui/calendar';
 import { ScheduleItem } from '@/components/schedules/ScheduleItem';
 import { ContentPCItem } from '@/components/schedules/ContentPCItem';
@@ -123,6 +124,7 @@ export default function ScheduleManagementPage() {
   const [contentPcOptions, setContentPcOptions] = useState<SearchableSelectOption[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
 
   const { showSuccess, showError } = useToastStore();
 
@@ -609,8 +611,7 @@ export default function ScheduleManagementPage() {
                   schedule={schedule}
                   contentPcs={contentPcs}
                   onViewDetails={(id) => {
-                    // TODO: Implement view details modal
-                    showError('상세보기 기능은 곧 제공될 예정입니다.');
+                    setSelectedScheduleId(id);
                   }}
                   onEdit={(id) => {
                     // TODO: Implement edit modal
@@ -690,6 +691,18 @@ export default function ScheduleManagementPage() {
           loadSchedules();
           loadStatistics();
           loadCalendarData(); // Refresh calendar view
+        }}
+      />
+
+      {/* Schedule Detail Modal */}
+      <ScheduleDetailModal
+        open={selectedScheduleId !== null}
+        scheduleId={selectedScheduleId}
+        onClose={() => setSelectedScheduleId(null)}
+        onSave={(id) => {
+          loadSchedules();
+          loadStatistics();
+          loadCalendarData();
         }}
       />
     </>
