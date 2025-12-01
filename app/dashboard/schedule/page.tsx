@@ -13,6 +13,7 @@ import { StatCard } from '@/components/ui/stat-card';
 import { SearchableSelect, SearchableSelectOption } from '@/components/ui/searchable-select';
 import { CreateScheduleModal } from '@/components/schedules/CreateScheduleModal';
 import { ScheduleDetailModal } from '@/components/schedules/ScheduleDetailModal';
+import { EditScheduleModal } from '@/components/schedules/EditScheduleModal';
 import { Calendar, CalendarDateData } from '@/components/ui/calendar';
 import { ScheduleItem } from '@/components/schedules/ScheduleItem';
 import { ContentPCItem } from '@/components/schedules/ContentPCItem';
@@ -125,6 +126,7 @@ export default function ScheduleManagementPage() {
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
+  const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
 
   const { showSuccess, showError } = useToastStore();
 
@@ -614,8 +616,7 @@ export default function ScheduleManagementPage() {
                     setSelectedScheduleId(id);
                   }}
                   onEdit={(id) => {
-                    // TODO: Implement edit modal
-                    showError('수정 기능은 곧 제공될 예정입니다.');
+                    setEditingScheduleId(id);
                   }}
                   onStop={handleStopSchedule}
                   onRestart={handleRestartSchedule}
@@ -700,9 +701,22 @@ export default function ScheduleManagementPage() {
         scheduleId={selectedScheduleId}
         onClose={() => setSelectedScheduleId(null)}
         onSave={(id) => {
+          // Open edit modal when save is clicked
+          setSelectedScheduleId(null);
+          setEditingScheduleId(id);
+        }}
+      />
+
+      {/* Edit Schedule Modal */}
+      <EditScheduleModal
+        open={editingScheduleId !== null}
+        scheduleId={editingScheduleId}
+        onClose={() => setEditingScheduleId(null)}
+        onSuccess={() => {
           loadSchedules();
           loadStatistics();
           loadCalendarData();
+          setEditingScheduleId(null);
         }}
       />
     </>
