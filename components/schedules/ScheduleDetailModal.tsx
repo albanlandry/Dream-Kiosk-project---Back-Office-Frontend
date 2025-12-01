@@ -84,15 +84,14 @@ export function ScheduleDetailModal({
       const response = await apiClient.get(`/schedules/${scheduleId}/details`);
       const data = response.data?.data || response.data;
       setDetails(data);
-    } catch (error: unknown) {
+    } catch (error) {
       console.error("Failed to load schedule details:", error);
       const errorMessage =
-        error && typeof error === 'object' && 'response' in error
-          ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+        error && typeof error === "object" && "response" in error
+          ? (error as { response?: { data?: { message?: string } } }).response
+              ?.data?.message
           : undefined;
-      showError(
-        errorMessage || "스케줄 상세 정보를 불러오는데 실패했습니다."
-      );
+      showError(errorMessage || "스케줄 상세 정보를 불러오는데 실패했습니다.");
       onClose();
     } finally {
       setIsLoading(false);
@@ -170,7 +169,7 @@ export function ScheduleDetailModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <div className="flex items-center justify-between px-5 py-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-800">
             스케줄 상세보기
           </h2>
@@ -193,7 +192,7 @@ export function ScheduleDetailModal({
         ) : (
           <>
             {/* Schedule Title and Status */}
-            <div className="px-6 py-5  pt-12 border-b border-gray-200 bg-white text-center">
+            <div className="px-6 py-5 pt-12 border-b border-gray-200 bg-white text-center">
               <h3 className="text-lg font-semibold text-gray-900 mb-1">
                 {scheduleTitle}
               </h3>
@@ -209,7 +208,7 @@ export function ScheduleDetailModal({
             {/* Tab Container */}
             <div className="px-6">
               {/* Tabs */}
-              <div className="flex border-b border-gray-200 bg-white">
+              <div className="flex border-b border-gray-200 bg-white pt-6">
                 {[
                   { id: "overview", label: "개요" },
                   { id: "content", label: "콘텐츠" },
@@ -315,153 +314,170 @@ export function ScheduleDetailModal({
                   </div>
                 )}
 
-                 {/* Content Tab */}
-                 {activeTab === "content" && (
-                   <div className="space-y-8">
-                     <div className="border border-gray-200 rounded-lg p-4">
-                       <h4 className="text-sm font-semibold text-gray-800 mb-4">
-                         콘텐츠 정보
-                       </h4>
-                       <div className="space-y-3">
-                         {/* Template Field */}
-                         <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                           <div className="flex items-center justify-between">
-                             <label className="text-sm font-medium text-gray-700">
-                               템플릿:
-                             </label>
-                             <p className="text-sm text-gray-900">
-                               {schedule.templateAnimal || "없음"}
-                             </p>
-                           </div>
-                         </div>
-                         {/* Author Field */}
-                         <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                           <div className="flex items-center justify-between">
-                             <label className="text-sm font-medium text-gray-700">
-                               작성자:
-                             </label>
-                             <p className="text-sm text-gray-900">
-                               {schedule.authorName || "없음"}
-                             </p>
-                           </div>
-                         </div>
-                         {/* Wish Message Field */}
-                         <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                           <div className="flex items-center justify-between">
-                             <label className="text-sm font-medium text-gray-700">
-                               소원 메시지:
-                             </label>
-                             <p className="text-sm text-gray-900 text-right flex-1 ml-4">
-                               {schedule.wishMessage || "없음"}
-                             </p>
-                           </div>
-                         </div>
-                       </div>
-                     </div>
-                     
-                      {/* 재생 설정 */}
-                      <div className="border border-gray-200 rounded-lg p-4">
-                        <h4 className="text-sm font-semibold text-gray-800 mb-4">
-                          재생 설정
-                        </h4>
-                        <div className="grid grid-cols-3 gap-3">
-                          {/* Auto Repeat Field */}
-                          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                            <div className="flex items-center justify-between">
-                              <label className="text-sm font-medium text-gray-700">
-                                자동 반복:
-                              </label>
-                              <p className="text-sm text-gray-600">비활성화</p>
-                            </div>
+                {/* Content Tab */}
+                {activeTab === "content" && (
+                  <div className="space-y-6">
+                    <div className="border border-gray-200 rounded-lg p-4">
+                      <h4 className="text-sm font-semibold text-gray-800 mb-4">
+                        콘텐츠 정보
+                      </h4>
+                      <div className="space-y-1">
+                        {/* Template Field */}
+                        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                          <div className="grid grid-cols-[200px_1fr_auto] gap-6 items-start">
+                            <label className="text-sm font-medium text-gray-700 font-semibold">
+                              템플릿:
+                            </label>
+                            <p className="text-sm text-gray-500">
+                              {schedule.templateAnimal || "없음"}
+                            </p>
                           </div>
-                          {/* Shuffle Mode Field */}
-                          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                            <div className="flex items-center justify-between">
-                              <label className="text-sm font-medium text-gray-700">
-                                셔플 모드:
-                              </label>
-                              <p className="text-sm text-gray-600">비활성화</p>
-                            </div>
+                        </div>
+                        {/* Author Field */}
+                        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                          <div className="grid grid-cols-[200px_1fr_auto] gap-6 items-start">
+                            <label className="text-sm font-medium text-gray-700 font-semibold">
+                              작성자:
+                            </label>
+                            <p className="text-sm text-gray-500">
+                              {schedule.authorName || "없음"}
+                            </p>
                           </div>
-                          {/* Volume Field */}
-                          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                            <div className="flex items-center justify-between">
-                              <label className="text-sm font-medium text-gray-700">
-                                볼륨:
-                              </label>
-                              <p className="text-sm text-gray-600">70%</p>
-                            </div>
-                          </div>
-                          {/* Brightness Field */}
-                          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                            <div className="flex items-center justify-between">
-                              <label className="text-sm font-medium text-gray-700">
-                                밝기:
-                              </label>
-                              <p className="text-sm text-gray-600">85%</p>
-                            </div>
-                          </div>
-                          {/* Display Mode Field */}
-                          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                            <div className="flex items-center justify-between">
-                              <label className="text-sm font-medium text-gray-700">
-                                디스플레이 모드:
-                              </label>
-                              <p className="text-sm text-gray-600">전체화면</p>
-                            </div>
+                        </div>
+                        {/* Wish Message Field */}
+                        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                          <div className="grid grid-cols-[200px_1fr_auto] gap-6 items-start">
+                            <label className="text-sm font-medium text-gray-700 font-semibold">
+                              소원 메시지:
+                            </label>
+                            <p className="text-sm text-gray-500 flex-1 text-gray-500">
+                              {schedule.wishMessage || "없음"}
+                            </p>
                           </div>
                         </div>
                       </div>
-                   </div>
-                 )}
+                    </div>
+
+                    {/* 재생 설정 */}
+                    <div className="border border-gray-200 rounded-lg p-4">
+                      <h4 className="text-sm font-semibold text-gray-800 mb-4">
+                        재생 설정
+                      </h4>
+                      <div className="grid grid-cols-3 gap-3">
+                        {/* Auto Repeat Field */}
+                        <div className="bg-white border-b p-4">
+                          <div className="flex items-center justify-between">
+                            <label className="text-sm font-medium text-gray-700">
+                              자동 반복:
+                            </label>
+                            <p className="text-sm text-gray-600">비활성화</p>
+                          </div>
+                        </div>
+                        {/* Shuffle Mode Field */}
+                        <div className="bg-white border-b p-4">
+                          <div className="flex items-center justify-between">
+                            <label className="text-sm font-medium text-gray-700">
+                              셔플 모드:
+                            </label>
+                            <p className="text-sm text-gray-600">비활성화</p>
+                          </div>
+                        </div>
+                        {/* Volume Field */}
+                        <div className="bg-white border-b p-4">
+                          <div className="flex items-center justify-between">
+                            <label className="text-sm font-medium text-gray-700">
+                              볼륨:
+                            </label>
+                            <p className="text-sm text-gray-600">70%</p>
+                          </div>
+                        </div>
+                        {/* Brightness Field */}
+                        <div className="bg-white border-b p-4">
+                          <div className="flex items-center justify-between">
+                            <label className="text-sm font-medium text-gray-700">
+                              밝기:
+                            </label>
+                            <p className="text-sm text-gray-600">85%</p>
+                          </div>
+                        </div>
+                        {/* Display Mode Field */}
+                        <div className="bg-white border-b p-4">
+                          <div className="flex items-center justify-between">
+                            <label className="text-sm font-medium text-gray-700">
+                              디스플레이 모드:
+                            </label>
+                            <p className="text-sm text-gray-600">전체화면</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Performance Tab */}
                 {activeTab === "performance" && performance && (
                   <div className="space-y-6">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-white rounded-lg p-5 border border-gray-200">
-                        <div className="flex items-center gap-3 mb-3">
-                          <Clock className="w-5 h-5 text-blue-500" />
-                          <span className="text-sm font-medium text-gray-700">
+                    <div className="grid grid-cols-3 gap-4">
+                      {/* Average Playback Time Card */}
+                      <div className="bg-gray-50 rounded-lg px-5 py-8 flex items-center gap-3">
+                        <div className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg p-2">
+                          <Clock className="w-8 h-8 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-3xl font-bold text-gray-900">
+                            {performance.averagePlaybackTime}분
+                          </p>
+                          <span className="text-sm font-medium text-gray-600">
                             평균 재생 시간
                           </span>
                         </div>
-                        <p className="text-2xl font-semibold text-gray-900">
-                          {performance.averagePlaybackTime}분
-                        </p>
                       </div>
-                      <div className="bg-white rounded-lg p-5 border border-gray-200">
-                        <div className="flex items-center gap-3 mb-3">
-                          <CheckCircle2 className="w-5 h-5 text-green-500" />
-                          <span className="text-sm font-medium text-gray-700">
+
+                      {/* Completion Rate Card */}
+                      <div className="bg-gray-50 rounded-lg px-5 py-8 flex items-center gap-3">
+                        <div className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg p-2">
+                          <CheckCircle2 className="w-8 h-8 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-3xl font-bold text-gray-900">
+                            {performance.completionRate.toFixed(1)}%
+                          </p>
+                          <span className="text-sm font-medium text-gray-600">
                             완료율
                           </span>
                         </div>
-                        <p className="text-2xl font-semibold text-gray-900">
-                          {performance.completionRate.toFixed(1)}%
-                        </p>
                       </div>
-                      <div className="bg-white rounded-lg p-5 border border-gray-200">
-                        <div className="flex items-center gap-3 mb-3">
-                          <Heart className="w-5 h-5 text-red-500" />
-                          <span className="text-sm font-medium text-gray-700">
+
+                      {/* User Engagement Card */}
+                      <div className="bg-gray-50 rounded-lg px-5 py-8 flex items-center gap-3">
+                        <div className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg p-2">
+                          <Heart className="w-8 h-8 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-3xl font-bold text-gray-900">
+                            {performance.userEngagement.toFixed(1)}%
+                          </p>
+                          <span className="text-sm font-medium text-gray-600">
                             사용자 참여도
                           </span>
                         </div>
-                        <p className="text-2xl font-semibold text-gray-900">
-                          {performance.userEngagement.toFixed(1)}%
-                        </p>
                       </div>
-                      <div className="bg-white rounded-lg p-5 border border-gray-200">
-                        <div className="flex items-center gap-3 mb-3">
-                          <AlertTriangle className="w-5 h-5 text-yellow-500" />
-                          <span className="text-sm font-medium text-gray-700">
-                            오류 횟수
-                          </span>
+
+                      {/* Error Count Card */}
+                      <div className="bg-gray-50 rounded-lg px-5 py-8 flex items-center gap-3">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg p-2">
+                            <AlertTriangle className="w-8 h-8 text-white" />
+                          </div>
+                          <div>
+                            <p className="text-3xl font-bold text-gray-900">
+                              {performance.errorCount}회
+                            </p>
+                            <span className="text-sm font-medium text-gray-600">
+                              오류 횟수
+                            </span>
+                          </div>
                         </div>
-                        <p className="text-2xl font-semibold text-gray-900">
-                          {performance.errorCount}회
-                        </p>
                       </div>
                     </div>
                     {performance.lastError && (
@@ -523,7 +539,7 @@ export function ScheduleDetailModal({
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-white">
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
               <Button
                 onClick={onClose}
                 variant="outline"
