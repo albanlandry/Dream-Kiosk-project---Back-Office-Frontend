@@ -19,6 +19,7 @@ import { ScheduleItem } from '@/components/schedules/ScheduleItem';
 import { ContentPCItem } from '@/components/schedules/ContentPCItem';
 import { useRoutePermission } from '@/lib/hooks/use-route-permission';
 import { PermissionGate } from '@/components/auth/permission-gate';
+import { SchedulePageSkeleton } from '@/components/skeletons/SchedulePageSkeleton';
 
 interface Schedule {
   id: string;
@@ -192,19 +193,7 @@ export default function ScheduleManagementPage() {
     router.push(`/dashboard/schedule?${params.toString()}`, { scroll: false });
   }, [router, searchParams]);
 
-  useEffect(() => {
-    loadProjects();
-    loadSchedules();
-    loadContentPcs();
-    loadStatistics();
-    loadCalendarData();
-  }, [currentPage, projectFilter, contentPcFilter, statusFilter, dateFilter, searchTerm]);
-
-  useEffect(() => {
-    loadCalendarData();
-  }, [currentMonth, projectFilter]);
-
-  const loadProjects = async () => {
+  const loadProjects = useCallback(async () => {
     try {
       setIsLoadingProjects(true);
       const response = await apiClient.get('/projects', {
@@ -234,9 +223,9 @@ export default function ScheduleManagementPage() {
     } finally {
       setIsLoadingProjects(false);
     }
-  };
+  }, [showError]);
 
-  const loadSchedules = async () => {
+  const loadSchedules = useCallback(async () => {
     try {
       setIsLoading(true);
       const params: any = {
@@ -265,9 +254,9 @@ export default function ScheduleManagementPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentPage, projectFilter, contentPcFilter, statusFilter, dateFilter, searchTerm, showError]);
 
-  const loadContentPcs = async () => {
+  const loadContentPcs = useCallback(async () => {
     try {
       const params: any = {};
       if (projectFilter) params.projectId = projectFilter;
@@ -290,9 +279,9 @@ export default function ScheduleManagementPage() {
     } catch (error) {
       console.error('Failed to load Content PCs:', error);
     }
-  };
+  }, [projectFilter]);
 
-  const loadStatistics = async () => {
+  const loadStatistics = useCallback(async () => {
     try {
       const params: any = {};
       if (projectFilter) params.projectId = projectFilter;
@@ -303,9 +292,9 @@ export default function ScheduleManagementPage() {
     } catch (error) {
       console.error('Failed to load statistics:', error);
     }
-  };
+  }, [projectFilter]);
 
-  const loadCalendarData = async () => {
+  const loadCalendarData = useCallback(async () => {
     if (!projectFilter) {
       setCalendarData({});
       return;
@@ -329,7 +318,19 @@ export default function ScheduleManagementPage() {
       console.error('Failed to load calendar data:', error);
       setCalendarData({});
     }
-  };
+  }, [currentMonth, projectFilter]);
+
+  useEffect(() => {
+    loadProjects();
+    loadSchedules();
+    loadContentPcs();
+    loadStatistics();
+    loadCalendarData();
+  }, [loadProjects, loadSchedules, loadContentPcs, loadStatistics, loadCalendarData]);
+
+  useEffect(() => {
+    loadCalendarData();
+  }, [loadCalendarData]);
 
   const handleDeleteSchedule = async (id: string) => {
     if (!confirm('이 스케줄을 삭제하시겠습니까?')) return;
@@ -431,6 +432,11 @@ export default function ScheduleManagementPage() {
   const handleCalendarMonthChange = (month: Date) => {
     setCurrentMonth(month);
   };
+
+  // Show skeleton while loading initial data
+  if (isLoading && schedules.length === 0) {
+    return <SchedulePageSkeleton />;
+  }
 
   return (
     <>

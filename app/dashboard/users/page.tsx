@@ -5,7 +5,7 @@ import { StatCard } from '@/components/ui/stat-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FilterSection, FilterGroup, SearchGroup } from '@/components/ui/filter-section';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { UserTable } from '@/components/users/UserTable';
 import { BulkActions } from '@/components/users/BulkActions';
 import { AddUserModal } from '@/components/users/AddUserModal';
@@ -16,6 +16,7 @@ import { apiClient } from '@/lib/api/client';
 import { useAuthStore } from '@/lib/store/authStore';
 import { useToastStore } from '@/lib/store/toastStore';
 import { useRouter } from 'next/navigation';
+import { UsersPageSkeleton } from '@/components/skeletons/UsersPageSkeleton';
 
 export interface User {
   id: string;
@@ -221,14 +222,7 @@ export default function UserManagementPage() {
     }
   }, [isAuthenticated, admin, router, showError]);
 
-  // Load users from API
-  useEffect(() => {
-    if (isAuthenticated && admin && admin.roles?.includes('admin')) {
-      loadUsers();
-    }
-  }, [isAuthenticated, admin, currentPage]);
-
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await apiClient.get(`/backoffice/admins?page=${currentPage}&limit=${ITEMS_PER_PAGE}`);
@@ -245,7 +239,19 @@ export default function UserManagementPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentPage, showError]);
+
+  // Load users from API
+  useEffect(() => {
+    if (isAuthenticated && admin && admin.roles?.includes('admin')) {
+      loadUsers();
+    }
+  }, [isAuthenticated, admin, loadUsers]);
+
+  // Show skeleton while loading
+  if (isLoading) {
+    return <UsersPageSkeleton />;
+  }
 
   const totalUsers = users.length;
   const activeUsers = users.filter((u) => u.status === 'active').length;

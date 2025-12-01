@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,8 @@ import { getResourceThumbnailUrl } from '@/lib/utils/thumbnail';
 import { Pagination } from '@/components/ui/pagination';
 import { useRoutePermission } from '@/lib/hooks/use-route-permission';
 import { PermissionGate } from '@/components/auth/permission-gate';
+import { ImagesPageSkeleton } from '@/components/skeletons/ImagesPageSkeleton';
+import { PageSkeletonWrapper } from '@/components/skeletons/PageSkeletonWrapper';
 
 interface Image {
   id: string;
@@ -48,11 +50,7 @@ export default function ImagesManagementPage() {
   // Protect route with permission check
   useRoutePermission('content:read', '/dashboard');
 
-  useEffect(() => {
-    loadImages();
-  }, [currentPage]);
-
-  const loadImages = async () => {
+  const loadImages = useCallback(async () => {
     try {
       setIsLoading(true);
       const params: any = {
@@ -129,7 +127,16 @@ export default function ImagesManagementPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentPage, searchTerm, showError]);
+
+  useEffect(() => {
+    loadImages();
+  }, [loadImages]);
+
+  // Show skeleton while loading permissions or data
+  if (isLoading) {
+    return <ImagesPageSkeleton />;
+  }
 
 
   const handleDelete = async (id: string) => {

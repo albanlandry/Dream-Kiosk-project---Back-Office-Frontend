@@ -3,7 +3,7 @@
 import { Header } from '@/components/layout/Header';
 import { StatCard } from '@/components/ui/stat-card';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ProjectItem } from '@/components/projects/ProjectItem';
 import { AddProjectModal } from '@/components/projects/AddProjectModal';
 import { ViewProjectModal } from '@/components/projects/ViewProjectModal';
@@ -15,6 +15,7 @@ import { projectsApi, type Project as ApiProject } from '@/lib/api/projects';
 import { useRouter } from 'next/navigation';
 import { useRoutePermission } from '@/lib/hooks/use-route-permission';
 import { PermissionGate } from '@/components/auth/permission-gate';
+import { ProjectsPageSkeleton } from '@/components/skeletons/ProjectsPageSkeleton';
 
 export interface Project {
   id: string;
@@ -66,12 +67,7 @@ export default function ProjectManagementPage() {
   // Protect route with permission check
   useRoutePermission('project:read', '/dashboard');
 
-  // Load projects from database on mount
-  useEffect(() => {
-    loadProjects();
-  }, []);
-
-  const loadProjects = async () => {
+  const loadProjects = useCallback(async () => {
     try {
       setIsLoadingProjects(true);
       const apiProjects = await projectsApi.getAll();
@@ -84,7 +80,17 @@ export default function ProjectManagementPage() {
     } finally {
       setIsLoadingProjects(false);
     }
-  };
+  }, [showError]);
+
+  // Load projects from database on mount
+  useEffect(() => {
+    loadProjects();
+  }, [loadProjects]);
+
+  // Show skeleton while loading
+  if (isLoadingProjects) {
+    return <ProjectsPageSkeleton />;
+  }
 
   const totalProjects = projects.length;
   const activeProjects = projects.filter((p) => p.status === 'active').length;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { getResourceThumbnailUrl } from '@/lib/utils/thumbnail';
 import { Pagination } from '@/components/ui/pagination';
 import { useRoutePermission } from '@/lib/hooks/use-route-permission';
 import { PermissionGate } from '@/components/auth/permission-gate';
+import { VideosPageSkeleton } from '@/components/skeletons/VideosPageSkeleton';
 
 interface Video {
   id: string;
@@ -48,11 +49,7 @@ export default function VideosManagementPage() {
   // Protect route with permission check
   useRoutePermission('content:read', '/dashboard');
 
-  useEffect(() => {
-    loadVideos();
-  }, [currentPage]);
-
-  const loadVideos = async () => {
+  const loadVideos = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await apiClient.get('/videos', {
@@ -123,7 +120,16 @@ export default function VideosManagementPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentPage, showError]);
+
+  useEffect(() => {
+    loadVideos();
+  }, [loadVideos]);
+
+  // Show skeleton while loading
+  if (isLoading) {
+    return <VideosPageSkeleton />;
+  }
 
   const handleDelete = async (id: string) => {
     if (!confirm('이 비디오를 삭제하시겠습니까?')) {

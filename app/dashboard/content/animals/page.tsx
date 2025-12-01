@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import { getResourceThumbnailUrl } from '@/lib/utils/thumbnail';
 import { Pagination } from '@/components/ui/pagination';
 import { useRoutePermission } from '@/lib/hooks/use-route-permission';
 import { PermissionGate } from '@/components/auth/permission-gate';
+import { AnimalsPageSkeleton } from '@/components/skeletons/AnimalsPageSkeleton';
 
 export default function AnimalsManagementPage() {
   const [animals, setAnimals] = useState<Animal[]>([]);
@@ -33,11 +34,7 @@ export default function AnimalsManagementPage() {
   // Protect route with permission check
   useRoutePermission('content:read', '/dashboard');
 
-  useEffect(() => {
-    loadAnimals();
-  }, [currentPage]);
-
-  const loadAnimals = async () => {
+  const loadAnimals = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await apiClient.get('/animals', {
@@ -108,7 +105,16 @@ export default function AnimalsManagementPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentPage, showError]);
+
+  useEffect(() => {
+    loadAnimals();
+  }, [loadAnimals]);
+
+  // Show skeleton while loading
+  if (isLoading) {
+    return <AnimalsPageSkeleton />;
+  }
 
   const handleDelete = async (id: string) => {
     if (!confirm('이 동물을 삭제하시겠습니까?')) {
