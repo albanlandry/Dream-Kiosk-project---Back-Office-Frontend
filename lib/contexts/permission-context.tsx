@@ -19,7 +19,8 @@ const PermissionContext = createContext<PermissionContextType | undefined>(undef
 export function PermissionProvider({ children }: { children: React.ReactNode }) {
   const [permissions, setPermissions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { isAuthenticated, token } = useAuthStore();
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const { isAuthenticated, token, admin } = useAuthStore();
   const pathname = usePathname();
 
   const loadPermissions = useCallback(async () => {
@@ -27,25 +28,40 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
     if (!isAuthenticated || !token || pathname === '/login') {
       setPermissions([]);
       setIsLoading(false);
+      setHasLoadedOnce(false);
       return;
     }
 
     try {
+      setIsLoading(true);
       const perms = await authApi.getPermissions();
-      setPermissions(perms);
+      setPermissions(perms || []);
+      setHasLoadedOnce(true);
     } catch (error: any) {
-      // Silently handle 401 errors (user not authenticated)
-      // Don't log or redirect - just set empty permissions
+      // Handle 401 errors (user not authenticated) - clear permissions
       if (error?.response?.status === 401) {
         setPermissions([]);
+        setHasLoadedOnce(false);
       } else {
+        // For other errors (network, server errors), preserve previous permissions
+        // This prevents false redirects on refresh when network is slow
         console.error('Failed to load permissions:', error);
-        setPermissions([]);
+        // Only set empty if we've never loaded before
+        if (!hasLoadedOnce) {
+          // If admin user, assume they have all permissions temporarily
+          // This prevents redirect on refresh before permissions load
+          if (admin?.role === 'admin') {
+            setPermissions(['*:*']); // Temporary admin permission
+          } else {
+            setPermissions([]);
+          }
+        }
+        // Keep hasLoadedOnce as true to preserve state
       }
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, token, pathname]);
+  }, [isAuthenticated, token, pathname, admin, hasLoadedOnce]);
 
   useEffect(() => {
     loadPermissions();
