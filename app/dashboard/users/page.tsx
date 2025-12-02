@@ -17,6 +17,7 @@ import { useAuthStore } from '@/lib/store/authStore';
 import { useToastStore } from '@/lib/store/toastStore';
 import { useRouter } from 'next/navigation';
 import { UsersPageSkeleton } from '@/components/skeletons/UsersPageSkeleton';
+import { useRoutePermission } from '@/lib/hooks/use-route-permission';
 
 export interface User {
   id: string;
@@ -207,20 +208,8 @@ export default function UserManagementPage() {
   const [viewingUser, setViewingUser] = useState<User | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
-  // Check if user is admin
-  useEffect(() => {
-    if (!isAuthenticated || !admin) {
-      showError('관리자 권한이 필요합니다.');
-      router.push('/login');
-      return;
-    }
-
-    if (!admin.roles || !admin.roles.includes('admin')) {
-      showError('관리자 권한이 필요합니다.');
-      router.push('/dashboard');
-      return;
-    }
-  }, [isAuthenticated, admin, router, showError]);
+  // Protect route with permission check
+  useRoutePermission('user:read', '/dashboard');
 
   const loadUsers = useCallback(async () => {
     try {
@@ -243,7 +232,7 @@ export default function UserManagementPage() {
 
   // Load users from API
   useEffect(() => {
-    if (isAuthenticated && admin && admin.roles?.includes('admin')) {
+    if (isAuthenticated && admin) {
       loadUsers();
     }
   }, [isAuthenticated, admin, loadUsers]);
@@ -331,10 +320,6 @@ export default function UserManagementPage() {
     setCurrentPage(page);
     setSelectedUsers([]);
   };
-
-  if (!isAuthenticated || !admin || !admin.roles?.includes('admin')) {
-    return null; // Will redirect in useEffect
-  }
 
   if (isLoading) {
     return (
