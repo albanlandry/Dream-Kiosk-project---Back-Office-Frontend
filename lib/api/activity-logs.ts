@@ -1,0 +1,241 @@
+import { apiClient } from './client';
+
+export interface ActivityLog {
+  id: string;
+  category: string;
+  action: string;
+  subCategory?: string;
+  level: 'critical' | 'error' | 'warn' | 'info' | 'debug';
+  status: 'success' | 'failed' | 'pending' | 'cancelled';
+  userId?: string;
+  adminId?: string;
+  sessionId?: string;
+  kioskId?: string;
+  contentPcId?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  deviceId?: string;
+  deviceType?: string;
+  location?: string;
+  resourceType?: string;
+  resourceId?: string;
+  resourceMetadata?: any;
+  description?: string;
+  metadata?: any;
+  beforeState?: any;
+  afterState?: any;
+  errorDetails?: {
+    code?: string;
+    message?: string;
+    stack?: string;
+    context?: any;
+  };
+  durationMs?: number;
+  responseSize?: number;
+  requestSize?: number;
+  createdAt: string;
+  occurredAt?: string;
+}
+
+export interface ActivityLogFilters {
+  category?: string;
+  action?: string;
+  level?: 'critical' | 'error' | 'warn' | 'info' | 'debug';
+  status?: 'success' | 'failed' | 'pending' | 'cancelled';
+  userId?: string;
+  adminId?: string;
+  sessionId?: string;
+  kioskId?: string;
+  resourceType?: string;
+  resourceId?: string;
+  startDate?: string;
+  endDate?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface CreateActivityLogDto {
+  category: string;
+  action: string;
+  subCategory?: string;
+  level?: 'critical' | 'error' | 'warn' | 'info' | 'debug';
+  status?: 'success' | 'failed' | 'pending' | 'cancelled';
+  userId?: string;
+  adminId?: string;
+  sessionId?: string;
+  kioskId?: string;
+  contentPcId?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  deviceId?: string;
+  deviceType?: string;
+  location?: string;
+  resourceType?: string;
+  resourceId?: string;
+  resourceMetadata?: any;
+  description?: string;
+  metadata?: any;
+  beforeState?: any;
+  afterState?: any;
+  errorDetails?: {
+    code?: string;
+    message?: string;
+    stack?: string;
+    context?: any;
+  };
+  durationMs?: number;
+  responseSize?: number;
+  requestSize?: number;
+  occurredAt?: string;
+}
+
+export interface PaginatedActivityLogs {
+  data: ActivityLog[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface ActivityLogStatistics {
+  total: number;
+  byCategory: Record<string, number>;
+  byLevel: Record<string, number>;
+  byStatus: Record<string, number>;
+  recentErrors: ActivityLog[];
+}
+
+/**
+ * Activity Logging API Client
+ * Provides methods to interact with the activity logging backend
+ */
+export class ActivityLogsApi {
+  /**
+   * Create a new activity log entry
+   */
+  static async create(log: CreateActivityLogDto): Promise<ActivityLog> {
+    const response = await apiClient.post<ActivityLog>('/activity-logs', log);
+    return response.data;
+  }
+
+  /**
+   * Query activity logs with filters
+   */
+  static async query(filters: ActivityLogFilters = {}): Promise<PaginatedActivityLogs> {
+    const params = new URLSearchParams();
+    
+    if (filters.category) params.append('category', filters.category);
+    if (filters.action) params.append('action', filters.action);
+    if (filters.level) params.append('level', filters.level);
+    if (filters.status) params.append('status', filters.status);
+    if (filters.userId) params.append('userId', filters.userId);
+    if (filters.adminId) params.append('adminId', filters.adminId);
+    if (filters.sessionId) params.append('sessionId', filters.sessionId);
+    if (filters.kioskId) params.append('kioskId', filters.kioskId);
+    if (filters.resourceType) params.append('resourceType', filters.resourceType);
+    if (filters.resourceId) params.append('resourceId', filters.resourceId);
+    if (filters.startDate) params.append('startDate', filters.startDate);
+    if (filters.endDate) params.append('endDate', filters.endDate);
+    if (filters.search) params.append('search', filters.search);
+    if (filters.page) params.append('page', filters.page.toString());
+    if (filters.limit) params.append('limit', filters.limit.toString());
+
+    const response = await apiClient.get<PaginatedActivityLogs>(
+      `/activity-logs?${params.toString()}`,
+    );
+    return response.data;
+  }
+
+  /**
+   * Get activity log statistics
+   */
+  static async getStatistics(filters?: ActivityLogFilters): Promise<ActivityLogStatistics> {
+    const params = new URLSearchParams();
+    
+    if (filters?.startDate) params.append('startDate', filters.startDate);
+    if (filters?.endDate) params.append('endDate', filters.endDate);
+    if (filters?.category) params.append('category', filters.category);
+
+    const response = await apiClient.get<ActivityLogStatistics>(
+      `/activity-logs/statistics?${params.toString()}`,
+    );
+    return response.data;
+  }
+}
+
+/**
+ * Frontend Activity Logging Client
+ * Provides convenience methods for logging user actions from the frontend
+ */
+export class ActivityLogClient {
+  /**
+   * Log a user action from the frontend
+   */
+  static async logUserAction(
+    action: string,
+    metadata?: any,
+    options?: {
+      category?: string;
+      level?: 'critical' | 'error' | 'warn' | 'info' | 'debug';
+      status?: 'success' | 'failed' | 'pending' | 'cancelled';
+      resourceType?: string;
+      resourceId?: string;
+    },
+  ): Promise<void> {
+    try {
+      // Get session ID from localStorage or generate one
+      const sessionId = localStorage.getItem('sessionId') || undefined;
+      
+      await ActivityLogsApi.create({
+        category: options?.category || 'user',
+        action,
+        level: options?.level || 'info',
+        status: options?.status || 'success',
+        sessionId,
+        resourceType: options?.resourceType,
+        resourceId: options?.resourceId,
+        metadata: {
+          ...metadata,
+          userAgent: navigator.userAgent,
+          url: window.location.href,
+        },
+      });
+    } catch (error) {
+      // Silently fail - don't interrupt user experience
+      console.error('Failed to log activity', error);
+    }
+  }
+
+  /**
+   * Log an error from the frontend
+   */
+  static async logError(
+    action: string,
+    error: Error,
+    metadata?: any,
+  ): Promise<void> {
+    try {
+      await ActivityLogsApi.create({
+        category: 'user',
+        action,
+        level: 'error',
+        status: 'failed',
+        errorDetails: {
+          message: error.message,
+          stack: error.stack,
+        },
+        metadata: {
+          ...metadata,
+          userAgent: navigator.userAgent,
+          url: window.location.href,
+        },
+      });
+    } catch (logError) {
+      console.error('Failed to log error', logError);
+    }
+  }
+}
+
