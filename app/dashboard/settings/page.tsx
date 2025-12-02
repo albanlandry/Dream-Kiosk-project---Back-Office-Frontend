@@ -13,7 +13,7 @@ import { BackupSettingsTab } from '@/components/settings/BackupSettingsTab';
 import { useToastStore } from '@/lib/store/toastStore';
 import { LoadingModal } from '@/components/ui/loading-modal';
 import { useRoutePermission } from '@/lib/hooks/use-route-permission';
-import { apiClient } from '@/lib/api/client';
+import { settingsApi, SystemSettings } from '@/lib/api/settings';
 
 const TABS = [
   { id: 'general', label: '일반 설정' },
@@ -99,16 +99,81 @@ export default function SystemSettingsPage() {
   const loadSettings = useCallback(async () => {
     try {
       setIsLoading(true);
-      // TODO: Load settings from backend API
-      // const response = await apiClient.get('/settings');
-      // setFormData(response.data?.data || response.data);
-    } catch (error) {
+      const settings = await settingsApi.getSettings();
+      
+      // Transform nested settings to flat formData structure
+      const flatData: any = {
+        // General settings
+        systemName: settings.general?.systemName || '',
+        systemDescription: settings.general?.systemDescription || '',
+        timezone: settings.general?.timezone || 'Asia/Seoul',
+        language: settings.general?.language || 'ko',
+        maxRegenerations: settings.general?.maxRegenerations || 3,
+        defaultDuration: settings.general?.defaultDuration || 7,
+        maxVideoSize: settings.general?.maxVideoSize || 100,
+        supportedFormats: settings.general?.supportedFormats || ['mp4', 'mov'],
+        // API settings
+        sora2ApiKey: settings.api?.sora2?.apiKey || '',
+        sora2BaseUrl: settings.api?.sora2?.baseUrl || 'https://api.openai.com/v1/videos',
+        sora2Timeout: settings.api?.sora2?.timeout || 300,
+        sora2RetryCount: settings.api?.sora2?.retryCount || 3,
+        whisperApiKey: settings.api?.whisper?.apiKey || '',
+        whisperModel: settings.api?.whisper?.model || 'whisper-1',
+        whisperLanguage: settings.api?.whisper?.language || 'ko',
+        // Schedule settings
+        maxScheduleCount: settings.schedule?.maxScheduleCount || 100,
+        defaultContentDuration: settings.schedule?.defaultContentDuration || 30,
+        autoRemoveOldest: settings.schedule?.autoRemoveOldest ?? true,
+        enableScheduleRotation: settings.schedule?.enableScheduleRotation ?? true,
+        requireAuthentication: settings.schedule?.requireAuthentication ?? true,
+        maxNicknameLength: settings.schedule?.maxNicknameLength || 10,
+        maxMessageLength: settings.schedule?.maxMessageLength || 20,
+        // Notification settings
+        smtpHost: settings.notification?.smtp?.host || '',
+        smtpPort: settings.notification?.smtp?.port || 587,
+        smtpUser: settings.notification?.smtp?.user || '',
+        smtpPassword: settings.notification?.smtp?.password || '',
+        notificationEmail: settings.notification?.notificationEmail || '',
+        notifications: settings.notification?.notifications || {
+          contentRegistration: true,
+          contentGeneration: true,
+          kioskError: true,
+          dailyReport: false,
+        },
+        // Security settings
+        jwtSecret: settings.security?.jwt?.secret || '',
+        jwtExpiry: settings.security?.jwt?.expiry || 24,
+        maxLoginAttempts: settings.security?.maxLoginAttempts || 5,
+        lockoutDuration: settings.security?.lockoutDuration || 30,
+        encryptionKey: settings.security?.encryption?.key || '',
+        encryption: settings.security?.encryption || {
+          personalInfo: true,
+          contentInfo: true,
+          logFiles: false,
+        },
+        // Backup settings
+        autoBackupEnabled: settings.backup?.autoBackupEnabled ?? true,
+        backupFrequency: settings.backup?.backupFrequency || 'daily',
+        backupTime: settings.backup?.backupTime || '02:00',
+        backupRetention: settings.backup?.backupRetention || 30,
+        backupStorage: settings.backup?.backupStorage || 'local',
+        backupPath: settings.backup?.backupPath || '/backups',
+        backupTypes: settings.backup?.backupTypes || {
+          database: true,
+          files: true,
+          settings: false,
+        },
+      };
+      
+      setFormData(flatData);
+    } catch (error: any) {
       console.error('Failed to load settings:', error);
-      // Use default values on error
+      showError(error.response?.data?.message || '설정을 불러오는데 실패했습니다.');
+      // Use default values on error (already set in initial state)
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [showError]);
 
   useEffect(() => {
     loadSettings();
@@ -137,9 +202,90 @@ export default function SystemSettingsPage() {
   const handleSave = async () => {
     try {
       setIsSaving(true);
-      // TODO: Save settings to backend API
-      // await apiClient.put('/settings', formData);
+      
+      // Transform flat formData to nested structure expected by API
+      const updates: Partial<SystemSettings> = {
+        general: {
+          systemName: formData.systemName || '',
+          systemDescription: formData.systemDescription || '',
+          timezone: formData.timezone || 'Asia/Seoul',
+          language: (formData.language as 'ko' | 'en' | 'ja') || 'ko',
+          maxRegenerations: formData.maxRegenerations || 3,
+          defaultDuration: formData.defaultDuration || 7,
+          maxVideoSize: formData.maxVideoSize || 100,
+          supportedFormats: formData.supportedFormats || ['mp4', 'mov'],
+        },
+        api: {
+          sora2: {
+            apiKey: formData.sora2ApiKey || '',
+            baseUrl: formData.sora2BaseUrl || 'https://api.openai.com/v1/videos',
+            timeout: formData.sora2Timeout || 300,
+            retryCount: formData.sora2RetryCount || 3,
+          },
+          whisper: {
+            apiKey: formData.whisperApiKey || '',
+            model: formData.whisperModel || 'whisper-1',
+            language: formData.whisperLanguage || 'ko',
+          },
+        },
+        schedule: {
+          maxScheduleCount: formData.maxScheduleCount || 100,
+          defaultContentDuration: formData.defaultContentDuration || 30,
+          autoRemoveOldest: formData.autoRemoveOldest ?? true,
+          enableScheduleRotation: formData.enableScheduleRotation ?? true,
+          requireAuthentication: formData.requireAuthentication ?? true,
+          maxNicknameLength: formData.maxNicknameLength || 10,
+          maxMessageLength: formData.maxMessageLength || 20,
+        },
+        notification: {
+          smtp: {
+            host: formData.smtpHost || '',
+            port: formData.smtpPort || 587,
+            user: formData.smtpUser || '',
+            password: formData.smtpPassword || '',
+          },
+          notificationEmail: formData.notificationEmail || '',
+          notifications: formData.notifications || {
+            contentRegistration: true,
+            contentGeneration: true,
+            kioskError: true,
+            dailyReport: false,
+          },
+        },
+        security: {
+          jwt: {
+            secret: formData.jwtSecret || '',
+            expiry: formData.jwtExpiry || 24,
+          },
+          maxLoginAttempts: formData.maxLoginAttempts || 5,
+          lockoutDuration: formData.lockoutDuration || 30,
+          encryption: {
+            key: formData.encryptionKey || '',
+            personalInfo: formData.encryption?.personalInfo ?? true,
+            contentInfo: formData.encryption?.contentInfo ?? true,
+            logFiles: formData.encryption?.logFiles ?? false,
+          },
+        },
+        backup: {
+          autoBackupEnabled: formData.autoBackupEnabled ?? true,
+          backupFrequency: (formData.backupFrequency as 'daily' | 'weekly' | 'monthly') || 'daily',
+          backupTime: formData.backupTime || '02:00',
+          backupRetention: formData.backupRetention || 30,
+          backupStorage: (formData.backupStorage as 'local' | 's3' | 'gcs') || 'local',
+          backupPath: formData.backupPath || '/backups',
+          backupTypes: formData.backupTypes || {
+            database: true,
+            files: true,
+            settings: false,
+          },
+        },
+      };
+      
+      await settingsApi.updateSettings(updates, 'Updated via settings page');
       showSuccess('설정이 저장되었습니다.');
+      
+      // Reload settings to get updated values
+      await loadSettings();
     } catch (error: any) {
       console.error('Failed to save settings:', error);
       showError(error.response?.data?.message || '설정 저장에 실패했습니다.');
