@@ -133,11 +133,18 @@ export default function ImagesManagementPage() {
     loadImages();
   }, [loadImages]);
 
+  // 검색어가 변경되면 첫 페이지로 리셋
+  useEffect(() => {
+    setCurrentPage(1);
+    // loadImages는 currentPage와 searchTerm을 의존성으로 가지고 있으므로
+    // currentPage가 1로 변경되면 자동으로 호출됩니다.
+  }, [searchTerm]);
+
   // Show skeleton while loading permissions or data
+  // Note: This must be after all Hooks are called
   if (isLoading) {
     return <ImagesPageSkeleton />;
   }
-
 
   const handleDelete = async (id: string) => {
     if (!confirm('이 이미지를 삭제하시겠습니까?')) {
@@ -225,16 +232,6 @@ export default function ImagesManagementPage() {
     setSelectedImages([]); // 페이지 변경 시 선택 해제
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
-  // 검색어가 변경되면 첫 페이지로 리셋
-  useEffect(() => {
-    if (currentPage !== 1) {
-      setCurrentPage(1);
-    } else {
-      loadImages();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm]);
 
   // 검색어가 있을 때는 클라이언트 사이드 필터링 사용
   // 검색어가 없을 때는 서버 페이징 사용
