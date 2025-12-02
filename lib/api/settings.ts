@@ -13,13 +13,13 @@ export interface SystemSettings {
   };
   api: {
     sora2: {
-      apiKey: string;
+      sora2ApiKey: string;
       baseUrl: string;
       timeout: number;
       retryCount: number;
     };
     whisper: {
-      apiKey: string;
+      whisperApiKey: string;
       model: string;
       language: string;
     };

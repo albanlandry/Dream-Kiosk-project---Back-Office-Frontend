@@ -113,11 +113,11 @@ export default function SystemSettingsPage() {
         maxVideoSize: settings.general?.maxVideoSize || 100,
         supportedFormats: settings.general?.supportedFormats || ['mp4', 'mov'],
         // API settings
-        sora2ApiKey: settings.api?.sora2?.apiKey || '',
+        sora2ApiKey: settings.api?.sora2?.sora2ApiKey || '',
         sora2BaseUrl: settings.api?.sora2?.baseUrl || 'https://api.openai.com/v1/videos',
         sora2Timeout: settings.api?.sora2?.timeout || 300,
         sora2RetryCount: settings.api?.sora2?.retryCount || 3,
-        whisperApiKey: settings.api?.whisper?.apiKey || '',
+        whisperApiKey: settings.api?.whisper?.whisperApiKey || '',
         whisperModel: settings.api?.whisper?.model || 'whisper-1',
         whisperLanguage: settings.api?.whisper?.language || 'ko',
         // Schedule settings
@@ -217,13 +217,13 @@ export default function SystemSettingsPage() {
         },
         api: {
           sora2: {
-            apiKey: formData.sora2ApiKey || '',
+            sora2ApiKey: formData.sora2ApiKey || '',
             baseUrl: formData.sora2BaseUrl || 'https://api.openai.com/v1/videos',
             timeout: formData.sora2Timeout || 300,
             retryCount: formData.sora2RetryCount || 3,
           },
           whisper: {
-            apiKey: formData.whisperApiKey || '',
+            whisperApiKey: formData.whisperApiKey || '',
             model: formData.whisperModel || 'whisper-1',
             language: formData.whisperLanguage || 'ko',
           },
