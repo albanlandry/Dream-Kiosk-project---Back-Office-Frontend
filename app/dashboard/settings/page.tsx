@@ -94,7 +94,7 @@ export default function SystemSettingsPage() {
   const { showSuccess, showError } = useToastStore();
 
   // Protect route with permission check
-  useRoutePermission('system:write', '/dashboard');
+  useRoutePermission('settings:update', '/dashboard');
 
   const loadSettings = useCallback(async () => {
     try {
