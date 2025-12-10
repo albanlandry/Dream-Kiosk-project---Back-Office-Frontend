@@ -40,11 +40,14 @@ export default function ApiKeysPage() {
         status: statusFilter || undefined,
         search: searchTerm || undefined,
       });
-      setApiKeys(response.data);
-      setTotalPages(response.pagination.total_pages);
-      setTotal(response.pagination.total);
+      setApiKeys(response.data || []);
+      setTotalPages(response.pagination?.total_pages || 1);
+      setTotal(response.pagination?.total || 0);
     } catch (error) {
       console.error('Failed to load API keys:', error);
+      setApiKeys([]);
+      setTotalPages(1);
+      setTotal(0);
     } finally {
       setLoading(false);
     }

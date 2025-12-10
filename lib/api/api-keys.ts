@@ -113,8 +113,34 @@ export const apiKeysApi = {
     search?: string;
     tags?: string[];
   }): Promise<ApiKeyListResponse> => {
-    const response = await apiClient.get<ApiKeyListResponse>('/api-keys', { params });
-    return response.data;
+    const response = await apiClient.get('/api-keys', { params });
+    // Handle HATEOAS wrapped response: { data: {...}, _links: {...} }
+    const responseData = response.data?.data || response.data;
+    
+    // Handle paginated response
+    if (responseData && typeof responseData === 'object' && 'data' in responseData && 'pagination' in responseData) {
+      const pagination = responseData.pagination as any;
+      return {
+        data: responseData.data || [],
+        pagination: {
+          page: pagination.page || 1,
+          limit: pagination.limit || 20,
+          total: pagination.total || 0,
+          total_pages: pagination.totalPages || pagination.total_pages || 1,
+        },
+      };
+    }
+    
+    // If not paginated, return empty result
+    return {
+      data: Array.isArray(responseData) ? responseData : [],
+      pagination: {
+        page: params?.page || 1,
+        limit: params?.limit || 20,
+        total: 0,
+        total_pages: 1,
+      },
+    };
   },
 
   get: async (id: string): Promise<ApiKey> => {
