@@ -29,9 +29,34 @@ const navigation = [
   { name: '시스템 설정', href: '/dashboard/settings', icon: 'fas fa-cog' },
 ];
 
+// Superadmin-only navigation items
+const superadminNavigation = [
+  {
+    name: 'API 키 관리',
+    href: '/dashboard/api-keys',
+    icon: 'fas fa-key',
+    submenu: [
+      { name: '키 목록', href: '/dashboard/api-keys', icon: 'fas fa-list' },
+      { name: '키 생성', href: '/dashboard/api-keys/create', icon: 'fas fa-plus-circle' },
+      { name: '보안 대시보드', href: '/dashboard/api-keys/security', icon: 'fas fa-shield-alt' },
+      { name: '사용 통계', href: '/dashboard/api-keys/statistics', icon: 'fas fa-chart-line' },
+      { name: '감사 로그', href: '/dashboard/api-keys/audit', icon: 'fas fa-history' },
+    ],
+  },
+];
+
 export function Sidebar() {
   const pathname = usePathname();
   const { logout, admin } = useAuthStore();
+  
+  // Check if user is superadmin
+  const isSuperadmin = admin?.roles?.includes('super_admin') || admin?.roles?.includes('superadmin');
+
+  // Combine regular navigation with superadmin navigation
+  const allNavigation = [
+    ...navigation,
+    ...(isSuperadmin ? superadminNavigation : []),
+  ];
 
   return (
     <>
@@ -47,7 +72,7 @@ export function Sidebar() {
           <p className="text-sm text-gray-300">관리자 시스템</p>
         </div>
         <ul className="flex-1 overflow-y-auto py-4">
-          {navigation.map((item) => {
+          {allNavigation.map((item) => {
             const isActive =
               pathname === item.href || pathname?.startsWith(item.href + '/');
             const hasSubmenu = item.submenu && item.submenu.length > 0;

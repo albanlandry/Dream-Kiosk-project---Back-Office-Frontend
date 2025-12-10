@@ -360,6 +360,50 @@ export default function ScheduleManagementPage() {
     }
   };
 
+  const handleExportSchedules = async (format: 'json' | 'csv') => {
+    try {
+      const params: any = {
+        format,
+      };
+      
+      // Apply current filters
+      if (projectFilter) params.projectId = projectFilter;
+      if (contentPcFilter) params.contentPcId = contentPcFilter;
+      if (statusFilter) params.status = statusFilter;
+      if (dateFilter) params.date = dateFilter;
+      if (searchTerm) params.search = searchTerm;
+
+      const response = await apiClient.get('/schedules/export', {
+        params,
+        responseType: 'blob',
+      });
+
+      // Get filename from Content-Disposition header or generate one
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = `schedules_${new Date().toISOString().split('T')[0]}.${format}`;
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      showSuccess(`${format.toUpperCase()} 형식으로 스케줄을 내보냈습니다.`);
+    } catch (error: any) {
+      showError(error.response?.data?.message || '스케줄 내보내기에 실패했습니다.');
+    }
+  };
+
   const handleRestartSchedule = async (id: string) => {
     try {
       await apiClient.put(`/schedules/${id}`, { status: 'scheduled' });
@@ -584,6 +628,26 @@ export default function ScheduleManagementPage() {
                 </Button>
               </div>
             </div>
+          </div>
+          <div className="mt-4 flex gap-2 justify-end">
+            <PermissionGate permission="schedule:read">
+              <Button
+                onClick={() => handleExportSchedules('json')}
+                className="bg-green-500 hover:bg-green-600 text-white"
+                variant="outline"
+              >
+                <i className="fas fa-download mr-2"></i>
+                JSON 내보내기
+              </Button>
+              <Button
+                onClick={() => handleExportSchedules('csv')}
+                className="bg-green-500 hover:bg-green-600 text-white"
+                variant="outline"
+              >
+                <i className="fas fa-download mr-2"></i>
+                CSV 내보내기
+              </Button>
+            </PermissionGate>
           </div>
         </div>
 

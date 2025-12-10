@@ -63,7 +63,7 @@ interface ScheduleDetails {
   }>;
 }
 
-type TabType = "overview" | "content" | "performance" | "logs";
+type TabType = "overview" | "content" | "performance" | "logs" | "history";
 
 export function ScheduleDetailModal({
   open,
@@ -74,6 +74,16 @@ export function ScheduleDetailModal({
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [details, setDetails] = useState<ScheduleDetails | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [history, setHistory] = useState<Array<{
+    id: string;
+    timestamp: string;
+    action: string;
+    actor: string | null;
+    changes: any;
+    ipAddress: string | null;
+    userAgent: string | null;
+  }>>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const { showError } = useToastStore();
 
   const loadScheduleDetails = async () => {
@@ -98,15 +108,47 @@ export function ScheduleDetailModal({
     }
   };
 
+  const loadScheduleHistory = async () => {
+    if (!scheduleId) return;
+
+    try {
+      setIsLoadingHistory(true);
+      const response = await apiClient.get(`/schedules/${scheduleId}/history`, {
+        params: {
+          limit: 100,
+          offset: 0,
+        },
+      });
+      const data = response.data?.data || response.data;
+      setHistory(data.history || []);
+    } catch (error) {
+      console.error("Failed to load schedule history:", error);
+      setHistory([]);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
   useEffect(() => {
     if (open && scheduleId) {
       loadScheduleDetails();
+      if (activeTab === "history") {
+        loadScheduleHistory();
+      }
     } else {
       setDetails(null);
+      setHistory([]);
       setActiveTab("overview");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, scheduleId]);
+
+  useEffect(() => {
+    if (open && scheduleId && activeTab === "history") {
+      loadScheduleHistory();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -215,6 +257,7 @@ export function ScheduleDetailModal({
                     { id: "content", label: "콘텐츠" },
                     { id: "performance", label: "성능" },
                     { id: "logs", label: "로그" },
+                    { id: "history", label: "변경 이력" },
                   ].map((tab) => (
                     <button
                       key={tab.id}
@@ -528,6 +571,69 @@ export function ScheduleDetailModal({
                               <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded ml-4">
                                 {log.source}
                               </span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+
+                  {/* History Tab */}
+                  {activeTab === "history" && (
+                    <div className="space-y-4">
+                      {isLoadingHistory ? (
+                        <p className="text-gray-500 text-center py-8">
+                          변경 이력을 불러오는 중...
+                        </p>
+                      ) : history.length === 0 ? (
+                        <p className="text-gray-500 text-center py-8">
+                          변경 이력이 없습니다.
+                        </p>
+                      ) : (
+                        history.map((item) => (
+                          <div
+                            key={item.id}
+                            className="border-b border-gray-200 pb-4 last:border-0"
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-gray-900 mb-1">
+                                  {item.action}
+                                </p>
+                                <p className="text-xs text-gray-500 mb-2">
+                                  {formatDateTime(item.timestamp)}
+                                </p>
+                                {item.actor && (
+                                  <p className="text-xs text-gray-600 mb-2">
+                                    수행자: {item.actor}
+                                  </p>
+                                )}
+                                {item.changes?.beforeState && (
+                                  <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
+                                    <p className="font-medium text-gray-700 mb-1">
+                                      변경 전:
+                                    </p>
+                                    <pre className="text-gray-600 whitespace-pre-wrap">
+                                      {JSON.stringify(item.changes.beforeState, null, 2)}
+                                    </pre>
+                                  </div>
+                                )}
+                                {item.changes?.afterState && (
+                                  <div className="mt-2 p-2 bg-blue-50 rounded text-xs">
+                                    <p className="font-medium text-blue-700 mb-1">
+                                      변경 후:
+                                    </p>
+                                    <pre className="text-blue-600 whitespace-pre-wrap">
+                                      {JSON.stringify(item.changes.afterState, null, 2)}
+                                    </pre>
+                                  </div>
+                                )}
+                                {item.ipAddress && (
+                                  <p className="text-xs text-gray-500 mt-2">
+                                    IP: {item.ipAddress}
+                                  </p>
+                                )}
+                              </div>
                             </div>
                           </div>
                         ))
