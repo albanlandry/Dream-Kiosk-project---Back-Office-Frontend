@@ -225,5 +225,25 @@ export const apiKeysApi = {
     const responseData = response.data?.data || response.data;
     return responseData;
   },
+
+  rotate: async (
+    id: string,
+    gracePeriod?: string,
+    revokeOldKey?: boolean,
+  ): Promise<{ oldKeyId: string; newKey: ApiKey; key: string; gracePeriodEndsAt: string; warning: string }> => {
+    const response = await apiClient.post<{
+      data: {
+        oldKeyId: string;
+        newKey: ApiKey;
+        key: string;
+        gracePeriodEndsAt: string;
+        warning: string;
+      };
+    }>(`/api-keys/${id}/rotate`, {
+      gracePeriod,
+      revokeOldKey,
+    });
+    return response.data.data;
+  },
 };
 

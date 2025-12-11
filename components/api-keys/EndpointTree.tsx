@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { ChevronRight, ChevronDown, Search, Check, X } from 'lucide-react';
+import { ChevronRight, ChevronDown, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { apiKeysApi } from '@/lib/api/api-keys';
@@ -121,6 +121,7 @@ function TreeNode({
         {/* Expand/Collapse Button */}
         {hasChildren && (
           <button
+            type="button"
             onClick={() => onToggleExpand(node.path)}
             className="mr-1 p-1 hover:bg-gray-200 rounded"
           >
@@ -163,6 +164,7 @@ function TreeNode({
               return (
                 <button
                   key={method.method}
+                  type="button"
                   onClick={() => onToggleMethod(node.path, method.method)}
                   className={`px-2 py-1 text-xs font-semibold rounded transition-colors ${
                     isMethodSelected
@@ -323,7 +325,7 @@ export function EndpointTree({
     return (
       <div className="p-8 text-center text-gray-500">
         엔드포인트 트리를 불러올 수 없습니다.
-        <Button onClick={loadTree} className="mt-4" variant="outline">
+        <Button type="button" onClick={loadTree} className="mt-4" variant="outline">
           다시 시도
         </Button>
       </div>
@@ -343,13 +345,13 @@ export function EndpointTree({
             className="pl-10"
           />
         </div>
-        <Button variant="outline" size="sm" onClick={handleSelectAll}>
+        <Button type="button" variant="outline" size="sm" onClick={handleSelectAll}>
           모두 선택
         </Button>
-        <Button variant="outline" size="sm" onClick={handleClearAll}>
+        <Button type="button" variant="outline" size="sm" onClick={handleClearAll}>
           모두 해제
         </Button>
-        <Button variant="outline" size="sm" onClick={loadTree}>
+        <Button type="button" variant="outline" size="sm" onClick={loadTree}>
           새로고침
         </Button>
       </div>
