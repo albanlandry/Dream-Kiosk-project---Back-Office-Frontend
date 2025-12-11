@@ -217,5 +217,13 @@ export const apiKeysApi = {
   bulkBlacklist: async (ids: string[], reason?: string): Promise<void> => {
     await apiClient.post('/api-keys/bulk/blacklist', { ids, reason });
   },
+
+  getEndpointTree: async (refresh?: boolean): Promise<any> => {
+    const response = await apiClient.get('/api-keys/endpoints/tree', {
+      params: refresh ? { refresh: 'true' } : undefined,
+    });
+    const responseData = response.data?.data || response.data;
+    return responseData;
+  },
 };
 

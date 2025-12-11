@@ -43,6 +43,15 @@ const superadminNavigation = [
       { name: '감사 로그', href: '/dashboard/api-keys/audit', icon: 'fas fa-history' },
     ],
   },
+  {
+    name: '역할 및 권한',
+    href: '/dashboard/roles',
+    icon: 'fas fa-user-shield',
+    submenu: [
+      { name: '역할 관리', href: '/dashboard/roles', icon: 'fas fa-users-cog' },
+      { name: '권한 관리', href: '/dashboard/permissions', icon: 'fas fa-key' },
+    ],
+  },
 ];
 
 export function Sidebar() {
