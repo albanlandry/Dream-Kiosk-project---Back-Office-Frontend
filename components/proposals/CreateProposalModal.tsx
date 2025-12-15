@@ -37,6 +37,7 @@ export function CreateProposalModal({
   const [hasMoreProjects, setHasMoreProjects] = useState(true);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { showSuccess, showError } = useToastStore();
 
@@ -54,6 +55,7 @@ export function CreateProposalModal({
       });
       setImageFile(null);
       setImagePreview(null);
+      setIsDragging(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -145,23 +147,55 @@ export function CreateProposalModal({
     }
   };
 
+  const handleFileSelect = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      showError('이미지 파일만 업로드 가능합니다.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      showError('이미지 크기는 10MB 이하여야 합니다.');
+      return;
+    }
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!file.type.startsWith('image/')) {
-        showError('이미지 파일만 업로드 가능합니다.');
-        return;
-      }
-      if (file.size > 10 * 1024 * 1024) {
-        showError('이미지 크기는 10MB 이하여야 합니다.');
-        return;
-      }
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      handleFileSelect(file);
+    }
+  };
+
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const droppedFile = e.dataTransfer.files[0];
+    if (droppedFile) {
+      handleFileSelect(droppedFile);
     }
   };
 
@@ -355,11 +389,11 @@ export function CreateProposalModal({
                 이미지
               </label>
               {imagePreview ? (
-                <div className="relative">
+                <div className="relative mb-4">
                   <img
                     src={imagePreview}
                     alt="Preview"
-                    className="w-full h-48 object-cover rounded-lg mb-2"
+                    className="w-full h-48 object-cover rounded-lg"
                   />
                   <Button
                     type="button"
@@ -369,17 +403,45 @@ export function CreateProposalModal({
                     <i className="fas fa-times mr-2"></i>제거
                   </Button>
                 </div>
-              ) : null}
-              <Input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="w-full"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                이미지 파일만 업로드 가능합니다. (최대 10MB)
-              </p>
+              ) : (
+                <div
+                  onDragEnter={handleDragEnter}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={`
+                    border-2 border-dashed rounded-lg p-8 text-center transition-colors
+                    ${isDragging 
+                      ? 'border-blue-500 bg-blue-50' 
+                      : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100'
+                    }
+                  `}
+                >
+                  <div className="flex flex-col items-center justify-center">
+                    <i className={`fas fa-cloud-upload-alt text-4xl mb-4 ${isDragging ? 'text-blue-500' : 'text-gray-400'}`}></i>
+                    <p className="text-sm text-gray-600 mb-2">
+                      {isDragging ? '파일을 놓아주세요' : '이미지 파일을 드래그 앤 드롭하거나 클릭하여 선택하세요'}
+                    </p>
+                    <p className="text-xs text-gray-500 mb-4">
+                      이미지 파일만 업로드 가능합니다. (최대 10MB)
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="bg-blue-500 hover:bg-blue-600 text-white"
+                    >
+                      <i className="fas fa-folder-open mr-2"></i>파일 선택
+                    </Button>
+                  </div>
+                  <Input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end gap-2 pt-4 border-t border-gray-200">
