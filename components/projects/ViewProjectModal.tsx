@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Project } from '@/app/dashboard/projects/page';
 import { cn } from '@/lib/utils/cn';
 import { projectsApi } from '@/lib/api/projects';
 import { apiClient } from '@/lib/api/client';
+import { PermissionGate } from '@/components/auth/permission-gate';
 
 interface ViewProjectModalProps {
   project: Project;
@@ -68,6 +70,7 @@ const mockActivities: Activity[] = [
 ];
 
 export function ViewProjectModal({ project, onClose }: ViewProjectModalProps) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<
     'overview' | 'kiosk' | 'contentpc' | 'statistics' | 'activity'
   >('overview');
@@ -75,6 +78,11 @@ export function ViewProjectModal({ project, onClose }: ViewProjectModalProps) {
   const [kiosks, setKiosks] = useState<Kiosk[]>([]);
   const [contentPCs, setContentPCs] = useState<ContentPC[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const handleGoToSettings = () => {
+    onClose();
+    router.push(`/dashboard/projects/${project.id}/settings`);
+  };
 
   const getStatusText = (status: string) => {
     switch (status) {
@@ -483,11 +491,20 @@ export function ViewProjectModal({ project, onClose }: ViewProjectModalProps) {
             )}
           </div>
 
-          <div className="flex justify-end gap-2 pt-4 border-t border-gray-200 mt-6">
-            <Button onClick={onClose} className="bg-gray-500 hover:bg-gray-600 text-white">
-              취소
-            </Button>
-            <Button className="bg-purple-500 hover:bg-purple-600 text-white">저장</Button>
+          <div className="flex justify-between items-center pt-4 border-t border-gray-200 mt-6">
+            <PermissionGate permission="project:update">
+              <Button
+                onClick={handleGoToSettings}
+                className="bg-blue-500 hover:bg-blue-600 text-white"
+              >
+                <i className="fas fa-cog mr-2"></i>설정 페이지로 이동
+              </Button>
+            </PermissionGate>
+            <div className="flex gap-2">
+              <Button onClick={onClose} className="bg-gray-500 hover:bg-gray-600 text-white">
+                닫기
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
