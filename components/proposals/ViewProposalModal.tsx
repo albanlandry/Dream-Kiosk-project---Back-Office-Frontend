@@ -130,6 +130,73 @@ export function ViewProposalModal({ proposal, onClose }: ViewProposalModalProps)
                   <p className="text-gray-800 mt-1">{formatDate(proposal.createdAt)}</p>
                 </div>
               </div>
+
+              {/* 스케줄 관리 정보 */}
+              <div className="pt-4 border-t border-gray-200">
+                <h4 className="text-lg font-semibold text-gray-800 mb-3">
+                  <i className="fas fa-calendar-alt mr-2"></i>스케줄 관리
+                </h4>
+                <div className="bg-blue-50 rounded-lg p-4 space-y-2">
+                  <div className="flex items-start">
+                    <i className="fas fa-info-circle text-blue-500 mt-1 mr-2"></i>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-700">
+                        이 프로포즈는 프로젝트의 제안 스케줄 파일에 자동으로 추가됩니다.
+                      </p>
+                      <p className="text-xs text-gray-600 mt-1">
+                        스케줄 파일 위치: <code className="bg-white px-2 py-1 rounded">proposes_schedule_list/{proposal.projectId}/schedule.json</code>
+                      </p>
+                      <p className="text-xs text-gray-600 mt-1">
+                        생성일: {formatDate(proposal.createdAt)}에 스케줄에 추가됨
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 만료 경고 */}
+              {(() => {
+                const now = new Date();
+                const displayEnd = new Date(proposal.displayEnd);
+                const isExpired = displayEnd < now;
+                const daysUntilExpiry = Math.ceil((displayEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                
+                if (isExpired) {
+                  return (
+                    <div className="pt-4 border-t border-gray-200">
+                      <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4">
+                        <div className="flex items-start">
+                          <i className="fas fa-exclamation-triangle text-red-500 mt-1 mr-2"></i>
+                          <div>
+                            <h4 className="text-sm font-semibold text-red-800 mb-1">만료된 프로포즈</h4>
+                            <p className="text-sm text-red-700">
+                              이 프로포즈는 {formatDate(proposal.displayEnd)}에 만료되었습니다.
+                              만료된 프로포즈는 자동으로 스케줄에서 제거됩니다.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                } else if (daysUntilExpiry <= 7 && daysUntilExpiry > 0) {
+                  return (
+                    <div className="pt-4 border-t border-gray-200">
+                      <div className="bg-yellow-50 border-l-4 border-yellow-500 rounded-lg p-4">
+                        <div className="flex items-start">
+                          <i className="fas fa-clock text-yellow-500 mt-1 mr-2"></i>
+                          <div>
+                            <h4 className="text-sm font-semibold text-yellow-800 mb-1">곧 만료 예정</h4>
+                            <p className="text-sm text-yellow-700">
+                              이 프로포즈는 {daysUntilExpiry}일 후 ({formatDate(proposal.displayEnd)})에 만료됩니다.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
 
             {/* 액션 버튼 */}

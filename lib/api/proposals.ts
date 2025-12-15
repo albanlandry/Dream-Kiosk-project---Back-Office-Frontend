@@ -80,5 +80,10 @@ export const proposalsApi = {
       totalRevenueChange: 15,
     };
   },
+
+  getDownloadQR: async (id: string): Promise<{ proposalId: string; downloadUrl: string; qrCode: string }> => {
+    const response = await apiClient.get(`/proposals/${id}/download-qr`);
+    return response.data?.data || response.data;
+  },
 };
 

@@ -11,6 +11,8 @@ import { StatCard } from '@/components/ui/stat-card';
 import { cn } from '@/lib/utils/cn';
 import { ViewProposalModal } from '@/components/proposals/ViewProposalModal';
 import { EditProposalModal } from '@/components/proposals/EditProposalModal';
+import { CreateProposalModal } from '@/components/proposals/CreateProposalModal';
+import { ProposalQRCodeModal } from '@/components/proposals/ProposalQRCodeModal';
 import { Pagination } from '@/components/ui/pagination';
 
 const ITEMS_PER_PAGE = 10;
@@ -34,6 +36,8 @@ export default function ProposalsManagementPage() {
   const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
   const [viewingProposal, setViewingProposal] = useState<Proposal | null>(null);
   const [editingProposal, setEditingProposal] = useState<Proposal | null>(null);
+  const [creatingProposal, setCreatingProposal] = useState(false);
+  const [qrCodeProposal, setQrCodeProposal] = useState<Proposal | null>(null);
   const { showSuccess, showError } = useToastStore();
 
   // Update URL query parameters
@@ -297,11 +301,12 @@ export default function ProposalsManagementPage() {
     const now = new Date();
     const displayEnd = new Date(proposal.displayEnd);
     const isExpired = displayEnd < now;
+    const daysUntilExpiry = Math.ceil((displayEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
     if (isExpired) {
       return (
-        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">
-          만료됨
+        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 flex items-center gap-1">
+          <i className="fas fa-clock"></i>만료됨
         </span>
       );
     }
@@ -309,6 +314,14 @@ export default function ProposalsManagementPage() {
       return (
         <span className="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">
           비활성화
+        </span>
+      );
+    }
+    // Show warning badge if expiring soon (within 7 days)
+    if (daysUntilExpiry <= 7 && daysUntilExpiry > 0) {
+      return (
+        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 flex items-center gap-1">
+          <i className="fas fa-exclamation-triangle"></i>곧 만료 ({daysUntilExpiry}일)
         </span>
       );
     }
@@ -332,8 +345,7 @@ export default function ProposalsManagementPage() {
           label: '새 프로포즈 생성',
           icon: 'fas fa-plus',
           onClick: () => {
-            // TODO: Open create proposal modal
-            showError('프로포즈 생성 기능은 곧 추가될 예정입니다.');
+            setCreatingProposal(true);
           },
         }}
       />
@@ -476,7 +488,15 @@ export default function ProposalsManagementPage() {
               {paginatedProposals.map((proposal) => (
               <div
                 key={proposal.id}
-                className="bg-white rounded-xl p-6 shadow-sm grid grid-cols-[200px_1fr_auto] gap-6"
+                className={cn(
+                  "bg-white rounded-xl p-6 shadow-sm grid grid-cols-[200px_1fr_auto] gap-6",
+                  (() => {
+                    const now = new Date();
+                    const displayEnd = new Date(proposal.displayEnd);
+                    const isExpired = displayEnd < now;
+                    return isExpired ? "opacity-75 border-l-4 border-gray-400" : "";
+                  })()
+                )}
               >
                 {/* 이미지 */}
                 <div className="w-full h-40 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
@@ -552,10 +572,7 @@ export default function ProposalsManagementPage() {
 
                   {/* 다운로드 QR 보기 - 청록색 */}
                   <Button
-                    onClick={() => {
-                      // TODO: Implement QR code view for proposal
-                      showError('QR 코드 기능은 곧 추가될 예정입니다.');
-                    }}
+                    onClick={() => setQrCodeProposal(proposal)}
                     className="bg-teal-500 hover:bg-teal-600 text-white text-sm rounded-lg"
                   >
                     <i className="fas fa-qrcode mr-2"></i>다운로드 QR 보기
@@ -614,6 +631,23 @@ export default function ProposalsManagementPage() {
           }}
         />
       )}
+
+      {/* 생성 모달 */}
+      <CreateProposalModal
+        open={creatingProposal}
+        onClose={() => setCreatingProposal(false)}
+        onSuccess={() => {
+          loadData();
+          setCreatingProposal(false);
+        }}
+      />
+
+      {/* QR 코드 모달 */}
+      <ProposalQRCodeModal
+        proposal={qrCodeProposal}
+        open={!!qrCodeProposal}
+        onClose={() => setQrCodeProposal(null)}
+      />
     </>
   );
 }
