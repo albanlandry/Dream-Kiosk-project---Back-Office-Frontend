@@ -10,6 +10,7 @@ import { ScheduleSettingsTab } from '@/components/settings/ScheduleSettingsTab';
 import { NotificationSettingsTab } from '@/components/settings/NotificationSettingsTab';
 import { SecuritySettingsTab } from '@/components/settings/SecuritySettingsTab';
 import { BackupSettingsTab } from '@/components/settings/BackupSettingsTab';
+import { AdvancedSettingsTab } from '@/components/settings/AdvancedSettingsTab';
 import { useToastStore } from '@/lib/store/toastStore';
 import { LoadingModal } from '@/components/ui/loading-modal';
 import { useRoutePermission } from '@/lib/hooks/use-route-permission';
@@ -22,6 +23,7 @@ const TABS = [
   { id: 'notification', label: '알림 설정' },
   { id: 'security', label: '보안 설정' },
   { id: 'backup', label: '백업 설정' },
+  { id: 'advanced', label: '고급 관리' },
 ];
 
 export default function SystemSettingsPage() {
@@ -381,6 +383,8 @@ export default function SystemSettingsPage() {
             onDeleteOldBackups={handleDeleteOldBackups}
           />
         );
+      case 'advanced':
+        return <AdvancedSettingsTab />;
       default:
         return null;
     }

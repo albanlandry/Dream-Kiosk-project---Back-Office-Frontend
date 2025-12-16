@@ -143,10 +143,28 @@ export class ActivityLogsApi {
     if (filters.page) params.append('page', filters.page.toString());
     if (filters.limit) params.append('limit', filters.limit.toString());
 
-    const response = await apiClient.get<PaginatedActivityLogs>(
+    const response = await apiClient.get<{ data: PaginatedActivityLogs }>(
       `/activity-logs?${params.toString()}`,
     );
-    return response.data;
+    
+    // Handle HATEOAS wrapped response: { data: {...}, _links: {...} }
+    const responseData = response.data?.data || response.data;
+    
+    // Ensure proper structure
+    if (responseData && typeof responseData === 'object' && 'data' in responseData && 'pagination' in responseData) {
+      return responseData as PaginatedActivityLogs;
+    }
+    
+    // Fallback: return empty result
+    return {
+      data: [],
+      pagination: {
+        page: filters.page || 1,
+        limit: filters.limit || 50,
+        total: 0,
+        totalPages: 0,
+      },
+    };
   }
 
   /**
@@ -159,10 +177,26 @@ export class ActivityLogsApi {
     if (filters?.endDate) params.append('endDate', filters.endDate);
     if (filters?.category) params.append('category', filters.category);
 
-    const response = await apiClient.get<ActivityLogStatistics>(
+    const response = await apiClient.get<{ data: ActivityLogStatistics }>(
       `/activity-logs/statistics?${params.toString()}`,
     );
-    return response.data;
+    
+    // Handle HATEOAS wrapped response: { data: {...}, _links: {...} }
+    const responseData = response.data?.data || response.data;
+    
+    // Ensure proper structure
+    if (responseData && typeof responseData === 'object' && 'total' in responseData) {
+      return responseData as ActivityLogStatistics;
+    }
+    
+    // Fallback: return empty statistics
+    return {
+      total: 0,
+      byCategory: {},
+      byLevel: {},
+      byStatus: {},
+      recentErrors: [],
+    };
   }
 }
 
