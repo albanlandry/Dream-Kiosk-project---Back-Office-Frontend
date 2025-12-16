@@ -9,7 +9,7 @@ import { ProjectSelect } from '@/components/projects/ProjectSelect';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { RevenueChart } from '@/components/dashboard/RevenueChart';
 import { ContentChart } from '@/components/dashboard/ContentChart';
-import { ActivityLogsFilters } from '@/components/dashboard/ActivityLogsFilters';
+import { ActivityLogsFiltersV2 } from '@/components/dashboard/ActivityLogsFiltersV2';
 import { ActivityLogsPagination } from '@/components/dashboard/ActivityLogsPagination';
 import { formatActivityLogs } from '@/lib/utils/activity-formatter';
 import { ActivityLogFilters } from '@/lib/api/activity-logs';
@@ -28,9 +28,9 @@ export default function DashboardPage() {
   // Activity Logs filters and pagination state
   const [activityFilters, setActivityFilters] = useState<ActivityLogFilters>({
     page: 1,
-    limit: 10,
+    limit: 15, // Default: 15 items instead of 10
   });
-  const [activityLimit, setActivityLimit] = useState(10);
+  const [activityLimit, setActivityLimit] = useState(15); // Default: 15 items instead of 10
   const [activityStartDate, setActivityStartDate] = useState<Date | undefined>(() => {
     const date = new Date();
     date.setDate(date.getDate() - 7); // Default: last 7 days for activities
@@ -252,7 +252,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Filters */}
-          <ActivityLogsFilters
+          <ActivityLogsFiltersV2
             filters={activityFilters}
             onFiltersChange={setActivityFilters}
             onLimitChange={setActivityLimit}
