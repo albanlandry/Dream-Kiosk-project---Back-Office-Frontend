@@ -114,5 +114,10 @@ export const contentPcsApi = {
     const response = await apiClient.put(`/schedules/content-pcs/${id}/settings`, settings);
     return response.data?.data || response.data;
   },
+
+  requestRepair: async (id: string): Promise<ContentPC> => {
+    const response = await apiClient.post(`/schedules/content-pcs/${id}/repair`);
+    return response.data?.data || response.data;
+  },
 };
 

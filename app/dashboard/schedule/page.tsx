@@ -20,6 +20,9 @@ import { ContentPCItem } from '@/components/schedules/ContentPCItem';
 import { useRoutePermission } from '@/lib/hooks/use-route-permission';
 import { PermissionGate } from '@/components/auth/permission-gate';
 import { SchedulePageSkeleton } from '@/components/skeletons/SchedulePageSkeleton';
+import { ContentPCResourcesModal } from '@/components/content-pcs/ContentPCResourcesModal';
+import { ContentPCSettingsModal } from '@/components/content-pcs/ContentPCSettingsModal';
+import { contentPcsApi, ContentPC } from '@/lib/api/content-pcs';
 
 interface Schedule {
   id: string;
@@ -128,6 +131,10 @@ export default function ScheduleManagementPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
+  
+  // Content PC modals
+  const [monitoringPcId, setMonitoringPcId] = useState<string | null>(null);
+  const [settingsPcId, setSettingsPcId] = useState<string | null>(null);
 
   const { showSuccess, showError } = useToastStore();
 
@@ -730,20 +737,28 @@ export default function ScheduleManagementPage() {
                     authorName: s.authorName,
                   }))}
                   onMonitoring={(id) => {
-                    // TODO: Implement monitoring modal
-                    showError('모니터링 기능은 곧 제공될 예정입니다.');
+                    setMonitoringPcId(id);
                   }}
                   onSettings={(id) => {
-                    // TODO: Implement settings modal
-                    showError('설정 기능은 곧 제공될 예정입니다.');
+                    setSettingsPcId(id);
                   }}
-                  onRestart={(id) => {
-                    // TODO: Implement restart
-                    showError('재시작 기능은 곧 제공될 예정입니다.');
+                  onRestart={async (id) => {
+                    try {
+                      await contentPcsApi.restart(id);
+                      showSuccess('Content PC가 재시작되었습니다.');
+                      loadContentPcs();
+                    } catch (error: any) {
+                      showError(error.response?.data?.message || '재시작에 실패했습니다.');
+                    }
                   }}
-                  onRepair={(id) => {
-                    // TODO: Implement repair request
-                    showError('수리 요청 기능은 곧 제공될 예정입니다.');
+                  onRepair={async (id) => {
+                    try {
+                      await contentPcsApi.requestRepair(id);
+                      showSuccess('수리 요청이 접수되었습니다.');
+                      loadContentPcs();
+                    } catch (error: any) {
+                      showError(error.response?.data?.message || '수리 요청에 실패했습니다.');
+                    }
                   }}
                   formatDateTime={formatDateTime}
                 />
@@ -789,6 +804,31 @@ export default function ScheduleManagementPage() {
           setEditingScheduleId(null);
         }}
       />
+
+      {/* Content PC Monitoring Modal */}
+      {monitoringPcId && (() => {
+        const pc = contentPcs.find((pc) => pc.id === monitoringPcId);
+        return pc ? (
+          <ContentPCResourcesModal
+            pc={pc as ContentPC}
+            onClose={() => setMonitoringPcId(null)}
+          />
+        ) : null;
+      })()}
+
+      {/* Content PC Settings Modal */}
+      {settingsPcId && (() => {
+        const pc = contentPcs.find((pc) => pc.id === settingsPcId);
+        return pc ? (
+          <ContentPCSettingsModal
+            pc={pc as ContentPC}
+            onClose={() => setSettingsPcId(null)}
+            onSuccess={() => {
+              loadContentPcs();
+            }}
+          />
+        ) : null;
+      })()}
     </>
   );
 }

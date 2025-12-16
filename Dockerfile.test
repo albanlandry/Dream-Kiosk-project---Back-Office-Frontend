@@ -1,0 +1,18 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dependencies
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+# Copy source code and tests
+COPY . .
+
+# Set environment variables for testing
+ENV NODE_ENV=test
+ENV NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
+
+# Run tests
+CMD ["npm", "test", "--", "__tests__/dashboard"]
+

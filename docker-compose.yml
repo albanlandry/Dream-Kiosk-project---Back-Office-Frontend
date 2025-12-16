@@ -17,6 +17,21 @@ services:
     networks:
       - kiosk-network
 
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: kiosk-backoffice-test
+    environment:
+      - NODE_ENV=test
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3000/api/v1}
+    volumes:
+      - ./coverage:/app/coverage
+    networks:
+      - kiosk-network
+    profiles:
+      - test
+
 networks:
   kiosk-network:
     external: true
