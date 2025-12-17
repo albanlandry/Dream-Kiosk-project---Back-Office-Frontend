@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils/cn';
 import { useAuthStore } from '@/lib/store/authStore';
+import { usePermissions } from '@/lib/contexts/permission-context';
 
 const navigation = [
   { name: '대시보드', href: '/dashboard', icon: 'fas fa-tachometer-alt' },
@@ -28,6 +29,19 @@ const navigation = [
   { name: '스케줄 관리', href: '/dashboard/schedule', icon: 'fas fa-calendar-alt' },
   { name: '시스템 설정', href: '/dashboard/settings', icon: 'fas fa-cog' },
 ];
+
+// Activity Logs navigation (permission-based)
+const activityLogsNavigation = {
+  name: '활동 로그 관리',
+  href: '/dashboard/activity-logs',
+  icon: 'fas fa-clipboard-list',
+  submenu: [
+    { name: '로그 조회', href: '/dashboard/activity-logs', icon: 'fas fa-list', permission: 'activity_logs:read' },
+    { name: '통계 및 분석', href: '/dashboard/activity-logs/analytics', icon: 'fas fa-chart-line', permission: 'activity_logs:read' },
+    { name: '내보내기', href: '/dashboard/activity-logs/export', icon: 'fas fa-download', permission: 'activity_logs:export' },
+    { name: '아카이브 관리', href: '/dashboard/activity-logs/archive', icon: 'fas fa-archive', permission: 'activity_logs:archive' },
+  ],
+};
 
 // Superadmin-only navigation items
 const superadminNavigation = [
@@ -57,13 +71,34 @@ const superadminNavigation = [
 export function Sidebar() {
   const pathname = usePathname();
   const { logout, admin } = useAuthStore();
+  const { hasPermission, hasAnyPermission } = usePermissions();
   
   // Check if user is superadmin
   const isSuperadmin = admin?.roles?.includes('super_admin') || admin?.roles?.includes('superadmin');
 
-  // Combine regular navigation with superadmin navigation
+  // Check if user has any activity logs permission
+  const hasActivityLogsAccess = hasAnyPermission([
+    'activity_logs:read',
+    'activity_logs:export',
+    'activity_logs:archive',
+    'activity_logs:manage',
+    'activity_logs:*',
+  ]);
+
+  // Filter activity logs submenu based on permissions
+  const filteredActivityLogsNav = hasActivityLogsAccess
+    ? {
+        ...activityLogsNavigation,
+        submenu: activityLogsNavigation.submenu.filter((item) =>
+          item.permission ? hasPermission(item.permission) : true
+        ),
+      }
+    : null;
+
+  // Combine regular navigation with permission-based navigation
   const allNavigation = [
     ...navigation,
+    ...(filteredActivityLogsNav ? [filteredActivityLogsNav] : []),
     ...(isSuperadmin ? superadminNavigation : []),
   ];
 

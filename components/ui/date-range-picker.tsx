@@ -24,6 +24,15 @@ export function DateRangePicker({
     return date.toISOString().split('T')[0];
   };
 
+  const formatDateKorean = (date: Date | undefined) => {
+    if (!date) return '';
+    return date.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
   const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const date = e.target.value ? new Date(e.target.value) : undefined;
     onChange(date, endDate);
@@ -57,7 +66,7 @@ export function DateRangePicker({
         <Calendar className="mr-2 h-4 w-4" />
         {startDate && endDate ? (
           <span>
-            {formatDate(startDate)} ~ {formatDate(endDate)}
+            {formatDateKorean(startDate)} ~ {formatDateKorean(endDate)}
           </span>
         ) : (
           <span className="text-gray-500">날짜 범위 선택</span>

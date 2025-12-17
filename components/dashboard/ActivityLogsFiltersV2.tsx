@@ -1,15 +1,16 @@
 'use client';
 
-import { X, Filter, Calendar, List } from 'lucide-react';
+import { useState } from 'react';
+import { X, Filter, Calendar, List, ChevronDown, ChevronUp } from 'lucide-react';
 import { ActivityLogFilters } from '@/lib/api/activity-logs';
 import { Badge } from '@/components/ui/badge';
 
 interface ActivityLogsFiltersV2Props {
   filters: ActivityLogFilters;
   onFiltersChange: (filters: ActivityLogFilters) => void;
-  onLimitChange: (limit: number) => void;
-  onDateRangeChange: (startDate?: Date, endDate?: Date) => void;
-  limit: number;
+  onLimitChange?: (limit: number) => void;
+  onDateRangeChange?: (startDate?: Date, endDate?: Date) => void;
+  limit?: number;
   startDate?: Date;
   endDate?: Date;
 }
@@ -42,14 +43,19 @@ const STATUSES = [
 const LIMIT_OPTIONS = [5, 15, 30, 50, 100];
 
 export function ActivityLogsFiltersV2({
-  filters,
+  filters: filtersProp,
   onFiltersChange,
   onLimitChange,
   onDateRangeChange,
-  limit,
+  limit = 50,
   startDate,
   endDate,
 }: ActivityLogsFiltersV2Props) {
+  const [isExpanded, setIsExpanded] = useState(true);
+  
+  // filters가 undefined일 수 있으므로 안전하게 처리
+  const filters = filtersProp || {};
+
   const handleCategoryToggle = (category: string) => {
     const newCategory = filters.category === category ? undefined : category;
     onFiltersChange({
@@ -78,7 +84,9 @@ export function ActivityLogsFiltersV2({
   };
 
   const handleDateRangeChange = (start?: Date, end?: Date) => {
-    onDateRangeChange(start, end);
+    if (onDateRangeChange) {
+      onDateRangeChange(start, end);
+    }
     onFiltersChange({
       ...filters,
       startDate: start?.toISOString(),
@@ -90,17 +98,19 @@ export function ActivityLogsFiltersV2({
   const clearFilters = () => {
     onFiltersChange({
       page: 1,
-      limit: filters.limit,
+      limit: filters.limit || limit,
     });
-    onDateRangeChange(undefined, undefined);
+    if (onDateRangeChange) {
+      onDateRangeChange(undefined, undefined);
+    }
   };
 
   const hasActiveFilters =
-    filters.category ||
-    filters.level ||
-    filters.status ||
-    startDate ||
-    endDate;
+    !!filters.category ||
+    !!filters.level ||
+    !!filters.status ||
+    !!startDate ||
+    !!endDate;
 
   const getActiveFilterCount = () => {
     let count = 0;
@@ -115,17 +125,23 @@ export function ActivityLogsFiltersV2({
     <div className="space-y-4">
       {/* Header with Active Filters Count */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-            <Filter className="h-4 w-4" />
-            <span>필터</span>
-            {hasActiveFilters && (
-              <Badge variant="default" className="ml-1">
-                {getActiveFilterCount()}
-              </Badge>
-            )}
-          </div>
-        </div>
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+        >
+          <Filter className="h-4 w-4" />
+          <span>필터</span>
+          {hasActiveFilters && (
+            <Badge variant="default" className="ml-1">
+              {getActiveFilterCount()}
+            </Badge>
+          )}
+          {isExpanded ? (
+            <ChevronUp className="h-4 w-4 ml-1" />
+          ) : (
+            <ChevronDown className="h-4 w-4 ml-1" />
+          )}
+        </button>
         <div className="flex items-center gap-3">
           {/* Limit Selector - Compact */}
           <div className="flex items-center gap-2">
@@ -134,7 +150,9 @@ export function ActivityLogsFiltersV2({
               value={limit}
               onChange={(e) => {
                 const newLimit = Number(e.target.value);
-                onLimitChange(newLimit);
+                if (onLimitChange) {
+                  onLimitChange(newLimit);
+                }
                 onFiltersChange({
                   ...filters,
                   limit: newLimit,
@@ -162,7 +180,7 @@ export function ActivityLogsFiltersV2({
         </div>
       </div>
 
-      {/* Active Filters Tags */}
+      {/* Active Filters Tags - Always visible when filters are active */}
       {hasActiveFilters && (
         <div className="flex flex-wrap items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
           <span className="text-xs font-medium text-gray-600">적용된 필터:</span>
@@ -204,127 +222,136 @@ export function ActivityLogsFiltersV2({
             >
               <Calendar className="h-3 w-3" />
               {startDate && endDate
-                ? `${startDate.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} ~ ${endDate.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}`
+                ? `${startDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} ~ ${endDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}`
                 : startDate
-                  ? `${startDate.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} ~`
-                  : `~ ${endDate?.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}`}
+                  ? `${startDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} ~`
+                  : `~ ${endDate?.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}`}
               <X className="h-3 w-3" />
             </Badge>
           )}
         </div>
       )}
 
-      {/* Category Filters - Tag Style */}
-      <div>
-        <label className="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
-          카테고리
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {CATEGORIES.map((category) => {
-            const isActive = filters.category === category.value;
-            return (
-              <button
-                key={category.value}
-                onClick={() => handleCategoryToggle(category.value)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  isActive
-                    ? `${category.color} shadow-md scale-105`
-                    : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400 hover:bg-gray-50'
-                }`}
-              >
-                <span className="mr-1.5">{category.icon}</span>
-                {category.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Level & Status Filters - Side by Side */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Level Filters */}
-        <div>
-          <label className="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
-            레벨
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {LEVELS.map((level) => {
-              const isActive = filters.level === level.value;
-              return (
-                <button
-                  key={level.value}
-                  onClick={() => handleLevelToggle(level.value)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
-                    isActive
-                      ? `${level.color} shadow-md scale-105`
-                      : 'bg-white text-gray-600 border border-gray-300 hover:border-gray-400 hover:bg-gray-50'
-                  }`}
-                >
-                  {level.label}
-                </button>
-              );
-            })}
+      {/* Filter Controls - Collapsible */}
+      <div
+        className={`overflow-hidden transition-all duration-300 ease-in-out ${
+          isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
+        }`}
+      >
+        <div className={`space-y-4 ${isExpanded ? 'block' : 'hidden'}`}>
+          {/* Category Filters - Tag Style */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+              카테고리
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {CATEGORIES.map((category) => {
+                const isActive = filters.category === category.value;
+                return (
+                  <button
+                    key={category.value}
+                    onClick={() => handleCategoryToggle(category.value)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                      isActive
+                        ? `${category.color} shadow-md scale-105`
+                        : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span className="mr-1.5">{category.icon}</span>
+                    {category.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
 
-        {/* Status Filters */}
-        <div>
-          <label className="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
-            상태
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {STATUSES.map((status) => {
-              const isActive = filters.status === status.value;
-              return (
-                <button
-                  key={status.value}
-                  onClick={() => handleStatusToggle(status.value)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
-                    isActive
-                      ? `${status.color} shadow-md scale-105`
-                      : 'bg-white text-gray-600 border border-gray-300 hover:border-gray-400 hover:bg-gray-50'
-                  }`}
-                >
-                  <span className="mr-1">{status.icon}</span>
-                  {status.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+          {/* Level & Status Filters - Side by Side */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Level Filters */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                레벨
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {LEVELS.map((level) => {
+                  const isActive = filters.level === level.value;
+                  return (
+                    <button
+                      key={level.value}
+                      onClick={() => handleLevelToggle(level.value)}
+                      className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+                        isActive
+                          ? `${level.color} shadow-md scale-105`
+                          : 'bg-white text-gray-600 border border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                      }`}
+                    >
+                      {level.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-      {/* Date Range Picker - Compact Inline */}
-      <div>
-        <label className="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
-          날짜 범위
-        </label>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 flex-1">
-            <Calendar className="h-4 w-4 text-gray-400" />
-            <input
-              type="date"
-              value={startDate ? startDate.toISOString().split('T')[0] : ''}
-              onChange={(e) => {
-                const date = e.target.value ? new Date(e.target.value) : undefined;
-                handleDateRangeChange(date, endDate);
-              }}
-              className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-              placeholder="시작일"
-            />
+            {/* Status Filters */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                상태
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {STATUSES.map((status) => {
+                  const isActive = filters.status === status.value;
+                  return (
+                    <button
+                      key={status.value}
+                      onClick={() => handleStatusToggle(status.value)}
+                      className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+                        isActive
+                          ? `${status.color} shadow-md scale-105`
+                          : 'bg-white text-gray-600 border border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className="mr-1">{status.icon}</span>
+                      {status.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
-          <span className="text-gray-400 font-medium">~</span>
-          <div className="flex items-center gap-2 flex-1">
-            <input
-              type="date"
-              value={endDate ? endDate.toISOString().split('T')[0] : ''}
-              onChange={(e) => {
-                const date = e.target.value ? new Date(e.target.value) : undefined;
-                handleDateRangeChange(startDate, date);
-              }}
-              className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-              placeholder="종료일"
-            />
+
+          {/* Date Range Picker - Compact Inline */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+              날짜 범위
+            </label>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 flex-1">
+                <Calendar className="h-4 w-4 text-gray-400" />
+                <input
+                  type="date"
+                  value={startDate ? startDate.toISOString().split('T')[0] : ''}
+                  onChange={(e) => {
+                    const date = e.target.value ? new Date(e.target.value) : undefined;
+                    handleDateRangeChange(date, endDate);
+                  }}
+                  className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                  placeholder="시작일"
+                />
+              </div>
+              <span className="text-gray-400 font-medium">~</span>
+              <div className="flex items-center gap-2 flex-1">
+                <input
+                  type="date"
+                  value={endDate ? endDate.toISOString().split('T')[0] : ''}
+                  onChange={(e) => {
+                    const date = e.target.value ? new Date(e.target.value) : undefined;
+                    handleDateRangeChange(startDate, date);
+                  }}
+                  className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                  placeholder="종료일"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>

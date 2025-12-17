@@ -198,7 +198,47 @@ export class ActivityLogsApi {
       recentErrors: [],
     };
   }
+
+  /**
+   * List S3 archives
+   */
+  static async listArchives(prefix?: string): Promise<{ archives: string[]; count: number }> {
+    const params = new URLSearchParams();
+    if (prefix) params.append('prefix', prefix);
+
+    const response = await apiClient.get<{ data: { archives: string[]; count: number } }>(
+      `/activity-logs/archive/s3?${params.toString()}`,
+    );
+    
+    const responseData = response.data?.data || response.data;
+    return responseData || { archives: [], count: 0 };
+  }
+
+  /**
+   * Get archive metadata
+   */
+  static async getArchiveMetadata(key: string): Promise<any> {
+    const response = await apiClient.get<{ data: any }>(
+      `/activity-logs/archive/s3/${encodeURIComponent(key)}/metadata`,
+    );
+    
+    return response.data?.data || response.data;
+  }
+
+  /**
+   * Restore archive from S3
+   */
+  static async restoreArchive(key: string): Promise<{ restored: number; error?: string }> {
+    const response = await apiClient.post<{ data: { restored: number; error?: string } }>(
+      `/activity-logs/archive/s3/${encodeURIComponent(key)}/restore`,
+    );
+    
+    return response.data?.data || response.data;
+  }
 }
+
+// Export singleton instance
+export const activityLogsApi = ActivityLogsApi;
 
 /**
  * Frontend Activity Logging Client

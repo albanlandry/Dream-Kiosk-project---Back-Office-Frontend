@@ -12,8 +12,8 @@ import { authApi } from '@/lib/api/auth';
 import { useAuthStore } from '@/lib/store/authStore';
 
 const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(1, 'Password is required'),
+  email: z.string().email('유효하지 않은 이메일 주소입니다'),
+  password: z.string().min(1, '비밀번호를 입력해주세요'),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -32,6 +32,46 @@ export function LoginForm() {
     resolver: zodResolver(loginSchema),
   });
 
+  // Translate error messages to Korean
+  const translateError = (message?: string): string => {
+    if (!message) return '이메일 또는 비밀번호가 올바르지 않습니다';
+    
+    const errorMap: Record<string, string> = {
+      'Invalid credentials': '이메일 또는 비밀번호가 올바르지 않습니다',
+      'Invalid email or password': '이메일 또는 비밀번호가 올바르지 않습니다',
+      'Unauthorized': '인증에 실패했습니다',
+      'User not found': '사용자를 찾을 수 없습니다',
+      'Account is inactive': '계정이 비활성화되었습니다',
+      'Too many login attempts': '로그인 시도 횟수가 초과되었습니다. 잠시 후 다시 시도해주세요',
+    };
+
+    // Check for exact match first
+    if (errorMap[message]) {
+      return errorMap[message];
+    }
+
+    // Check for partial matches
+    const lowerMessage = message.toLowerCase();
+    if (lowerMessage.includes('invalid') || lowerMessage.includes('credentials')) {
+      return '이메일 또는 비밀번호가 올바르지 않습니다';
+    }
+    if (lowerMessage.includes('unauthorized')) {
+      return '인증에 실패했습니다';
+    }
+    if (lowerMessage.includes('not found')) {
+      return '사용자를 찾을 수 없습니다';
+    }
+    if (lowerMessage.includes('inactive')) {
+      return '계정이 비활성화되었습니다';
+    }
+    if (lowerMessage.includes('too many') || lowerMessage.includes('attempts')) {
+      return '로그인 시도 횟수가 초과되었습니다. 잠시 후 다시 시도해주세요';
+    }
+
+    // Return original message if no translation found
+    return message;
+  };
+
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     setError(null);
@@ -46,7 +86,7 @@ export function LoginForm() {
         err && typeof err === 'object' && 'response' in err
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : undefined;
-      setError(errorMessage || 'Invalid email or password');
+      setError(translateError(errorMessage));
     } finally {
       setIsLoading(false);
     }

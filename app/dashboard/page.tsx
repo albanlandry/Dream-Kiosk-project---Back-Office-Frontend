@@ -5,16 +5,14 @@ import { StatCard } from '@/components/ui/stat-card';
 import { useStatistics } from '@/lib/hooks/useStatistics';
 import { useDashboardWebSocket } from '@/lib/hooks/useDashboardWebSocket';
 import { useActivityLogs } from '@/lib/hooks/useActivityLogs';
-import { ProjectSelect } from '@/components/projects/ProjectSelect';
-import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { RevenueChart } from '@/components/dashboard/RevenueChart';
 import { ContentChart } from '@/components/dashboard/ContentChart';
-import { ActivityLogsFiltersV2 } from '@/components/dashboard/ActivityLogsFiltersV2';
-import { ActivityLogsPagination } from '@/components/dashboard/ActivityLogsPagination';
+import { DashboardFilters } from '@/components/dashboard/DashboardFilters';
+import { ActivitySection } from '@/components/dashboard/ActivitySection';
+import { ChartCard } from '@/components/dashboard/ChartCard';
 import { formatActivityLogs } from '@/lib/utils/activity-formatter';
 import { ActivityLogFilters } from '@/lib/api/activity-logs';
-import { useEffect, useState, useMemo } from 'react';
-import { Wifi, WifiOff, Loader2, ArrowUpDown } from 'lucide-react';
+import { useState, useMemo } from 'react';
 
 export default function DashboardPage() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
@@ -28,9 +26,9 @@ export default function DashboardPage() {
   // Activity Logs filters and pagination state
   const [activityFilters, setActivityFilters] = useState<ActivityLogFilters>({
     page: 1,
-    limit: 15, // Default: 15 items instead of 10
+    limit: 5, // Default: 5 items
   });
-  const [activityLimit, setActivityLimit] = useState(15); // Default: 15 items instead of 10
+  const [activityLimit, setActivityLimit] = useState(5); // Default: 5 items
   const [activityStartDate, setActivityStartDate] = useState<Date | undefined>(() => {
     const date = new Date();
     date.setDate(date.getDate() - 7); // Default: last 7 days for activities
@@ -43,7 +41,7 @@ export default function DashboardPage() {
   const { isConnected } = useDashboardWebSocket(selectedProjectId || undefined);
 
   // Statistics with filters
-  const { data: statistics, isLoading } = useStatistics(
+  const { data: statistics } = useStatistics(
     {
       startDate: startDate?.toISOString(),
       endDate: endDate?.toISOString(),
@@ -77,7 +75,7 @@ export default function DashboardPage() {
       return [];
     }
 
-    let logs = [...activityLogsQuery.data.data];
+    const logs = [...activityLogsQuery.data.data];
 
     // Sort by date (createdAt or occurredAt)
     logs.sort((a, b) => {
@@ -90,6 +88,7 @@ export default function DashboardPage() {
   }, [activityLogsQuery.data, sortOrder]);
 
   // Generate chart data (mock data for now - can be replaced with real API data)
+  // Note: Using fixed mock data to avoid React purity issues with Math.random()
   const revenueChartData = useMemo(() => {
     const days = 30;
     const labels: string[] = [];
@@ -99,12 +98,12 @@ export default function DashboardPage() {
       const date = new Date();
       date.setDate(date.getDate() - i);
       labels.push(date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }));
-      // Mock data: random revenue between 100000 and 500000
-      values.push(Math.floor(Math.random() * 400000) + 100000);
+      // Mock data: fixed pattern for demo (should be replaced with real API data)
+      values.push(250000 + (i % 10) * 20000);
     }
 
     return { labels, values };
-  }, [startDate, endDate]);
+  }, []);
 
   const contentChartData = useMemo(() => {
     const days = 30;
@@ -115,12 +114,12 @@ export default function DashboardPage() {
       const date = new Date();
       date.setDate(date.getDate() - i);
       labels.push(date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }));
-      // Mock data: random content count between 5 and 50
-      values.push(Math.floor(Math.random() * 45) + 5);
+      // Mock data: fixed pattern for demo (should be replaced with real API data)
+      values.push(20 + (i % 10) * 3);
     }
 
     return { labels, values };
-  }, [startDate, endDate]);
+  }, []);
 
   // Calculate statistics from current data
   const totalContent = statistics?.videos?.total || 0;
@@ -140,46 +139,17 @@ export default function DashboardPage() {
       />
       <div className="p-8 min-h-screen">
         {/* Filters and Controls */}
-        <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <div className="flex flex-col sm:flex-row gap-4 flex-1">
-            <div className="w-full sm:w-64">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                프로젝트 선택
-              </label>
-              <ProjectSelect
-                value={selectedProjectId}
-                onChange={setSelectedProjectId}
-                placeholder="전체 프로젝트"
-              />
-            </div>
-            <div className="w-full sm:w-80">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                날짜 범위
-              </label>
-              <DateRangePicker
-                startDate={startDate}
-                endDate={endDate}
-                onChange={(start, end) => {
-                  setStartDate(start);
-                  setEndDate(end);
-                }}
-              />
-            </div>
-          </div>
-          <div className="flex items-center gap-2 text-sm">
-            {isConnected ? (
-              <>
-                <Wifi className="h-4 w-4 text-green-500" />
-                <span className="text-green-600">실시간 연결됨</span>
-              </>
-            ) : (
-              <>
-                <WifiOff className="h-4 w-4 text-gray-400" />
-                <span className="text-gray-500">연결 끊김</span>
-              </>
-            )}
-          </div>
-        </div>
+        <DashboardFilters
+          selectedProjectId={selectedProjectId}
+          onProjectChange={setSelectedProjectId}
+          startDate={startDate}
+          endDate={endDate}
+          onDateRangeChange={(start, end) => {
+            setStartDate(start);
+            setEndDate(end);
+          }}
+          isConnected={isConnected}
+        />
 
         {/* 통계 카드 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -215,103 +185,44 @@ export default function DashboardPage() {
 
         {/* 차트 영역 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-800 mb-5">일별 매출 추이</h3>
-            <div className="h-64">
-              <RevenueChart data={revenueChartData} />
-            </div>
-          </div>
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-800 mb-5">콘텐츠 생성 현황</h3>
-            <div className="h-64">
-              <ContentChart data={contentChartData} />
-            </div>
-          </div>
+          <ChartCard title="일별 매출 추이">
+            <RevenueChart data={revenueChartData} />
+          </ChartCard>
+          <ChartCard title="콘텐츠 생성 현황">
+            <ContentChart data={contentChartData} />
+          </ChartCard>
         </div>
 
         {/* 최근 활동 */}
-        <div className="bg-white rounded-xl p-6 shadow-sm" data-activity-section>
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-lg font-semibold text-gray-800">최근 활동</h3>
-            <div className="flex items-center gap-3">
-              {/* Sort Toggle */}
-              <button
-                onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
-                className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
-                title={sortOrder === 'desc' ? '오래된 순으로 정렬' : '최신 순으로 정렬'}
-              >
-                <ArrowUpDown className="h-4 w-4" />
-                <span className="text-xs">
-                  {sortOrder === 'desc' ? '최신순' : '오래된순'}
-                </span>
-              </button>
-              {activityLogsQuery.isLoading && (
-                <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-              )}
-            </div>
-          </div>
-
-          {/* Filters */}
-          <ActivityLogsFiltersV2
-            filters={activityFilters}
-            onFiltersChange={setActivityFilters}
-            onLimitChange={setActivityLimit}
-            onDateRangeChange={(start, end) => {
-              setActivityStartDate(start);
-              setActivityEndDate(end);
-            }}
-            limit={activityLimit}
-            startDate={activityStartDate}
-            endDate={activityEndDate}
-          />
-
-          {/* Activity List */}
-          <div className="space-y-4">
-            {activityLogsQuery.isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-                <span className="ml-2 text-sm text-gray-500">활동 로드 중...</span>
-              </div>
-            ) : recentActivities.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <p className="text-sm">선택한 필터 조건에 맞는 활동이 없습니다.</p>
-              </div>
-            ) : (
-              recentActivities.map((activity) => (
-                <div
-                  key={activity.id || `activity-${activity.title}-${activity.time}`}
-                  className={`flex items-start gap-4 p-4 bg-gray-50 rounded-lg border-l-4 ${activity.borderColor}`}
-                >
-                  <div className={`w-10 h-10 rounded-lg ${activity.color} flex items-center justify-center text-white`}>
-                    <i className={activity.icon}></i>
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-gray-800 mb-1">{activity.title}</p>
-                    <p className="text-sm text-gray-600 mb-1">{activity.description}</p>
-                    <span className="text-xs text-gray-500">{activity.time}</span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* Pagination */}
-          {activityLogsQuery.data?.pagination && (
-            <ActivityLogsPagination
-              currentPage={activityLogsQuery.data.pagination.page}
-              totalPages={activityLogsQuery.data.pagination.totalPages}
-              total={activityLogsQuery.data.pagination.total}
-              limit={activityLogsQuery.data.pagination.limit}
-              onPageChange={(page) => {
-                setActivityFilters((prev) => ({ ...prev, page }));
-                // Scroll to top of activity section
-                document
-                  .querySelector('[data-activity-section]')
-                  ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }}
-            />
-          )}
-        </div>
+        <ActivitySection
+          activities={recentActivities}
+          isLoading={activityLogsQuery.isLoading}
+          filters={activityFilters}
+          onFiltersChange={setActivityFilters}
+          limit={activityLimit}
+          onLimitChange={setActivityLimit}
+          startDate={activityStartDate}
+          endDate={activityEndDate}
+          onDateRangeChange={(start, end) => {
+            setActivityStartDate(start);
+            setActivityEndDate(end);
+          }}
+          sortOrder={sortOrder}
+          onSortChange={setSortOrder}
+          pagination={
+            activityLogsQuery.data?.pagination
+              ? {
+                  currentPage: activityLogsQuery.data.pagination.page,
+                  totalPages: activityLogsQuery.data.pagination.totalPages,
+                  total: activityLogsQuery.data.pagination.total,
+                  limit: activityLogsQuery.data.pagination.limit,
+                }
+              : undefined
+          }
+          onPageChange={(page) => {
+            setActivityFilters((prev) => ({ ...prev, page }));
+          }}
+        />
       </div>
     </>
   );
