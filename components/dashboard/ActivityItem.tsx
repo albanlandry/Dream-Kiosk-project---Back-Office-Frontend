@@ -11,9 +11,10 @@ interface ActivityItemProps {
   index: number;
   onItemClick: (index: number, event: React.MouseEvent) => void;
   onCheckboxChange: (checked: boolean, index: number) => void;
+  onDetailClick?: (logId: string) => void;
 }
 
-export function ActivityItem({ activity, logId, index, onItemClick, onCheckboxChange }: ActivityItemProps) {
+export function ActivityItem({ activity, logId, index, onItemClick, onCheckboxChange, onDetailClick }: ActivityItemProps) {
   const isSelected = useActivityLogsSelectionStore((state) => state.isSelected(logId));
 
   const handleClick = (e: React.MouseEvent) => {
@@ -21,7 +22,22 @@ export function ActivityItem({ activity, logId, index, onItemClick, onCheckboxCh
     if ((e.target as HTMLElement).closest('input[type="checkbox"]')) {
       return;
     }
-    onItemClick(index, e);
+    
+    const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+    const isShift = e.shiftKey;
+    
+    // If Ctrl/Cmd/Shift is pressed, use selection behavior
+    if (isCtrlOrCmd || isShift) {
+      onItemClick(index, e);
+    } else {
+      // Normal click: open detail modal
+      if (onDetailClick) {
+        onDetailClick(logId);
+      } else {
+        // Fallback to selection if no detail handler
+        onItemClick(index, e);
+      }
+    }
   };
 
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {

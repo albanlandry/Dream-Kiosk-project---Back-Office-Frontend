@@ -235,6 +235,61 @@ export class ActivityLogsApi {
     
     return response.data?.data || response.data;
   }
+
+  /**
+   * Delete activity logs by IDs
+   */
+  static async deleteLogs(ids: string[]): Promise<{ deleted: number; error?: string }> {
+    const response = await apiClient.delete<{ data: { deleted: number; error?: string } }>(
+      '/activity-logs',
+      {
+        data: { ids },
+      },
+    );
+    
+    return response.data?.data || response.data;
+  }
+
+  /**
+   * Archive selected logs to S3
+   */
+  static async archiveSelectedLogs(ids: string[], olderThanDays?: number): Promise<{
+    archived: number;
+    archivedSize: number;
+    compressedSize: number;
+    s3Key?: string;
+    error?: string;
+  }> {
+    const response = await apiClient.post<{
+      data: {
+        archived: number;
+        archivedSize: number;
+        compressedSize: number;
+        s3Key?: string;
+        error?: string;
+      };
+    }>('/activity-logs/archive/s3/selected', {
+      ids,
+      olderThanDays,
+    });
+    
+    return response.data?.data || response.data;
+  }
+
+  /**
+   * Export selected logs
+   */
+  static async exportSelectedLogs(ids: string[], format: 'csv' | 'json' = 'json'): Promise<Blob> {
+    const params = new URLSearchParams();
+    ids.forEach((id) => params.append('ids', id));
+    params.append('format', format);
+
+    const response = await apiClient.get(`/activity-logs/export/selected?${params.toString()}`, {
+      responseType: 'blob',
+    });
+    
+    return response.data;
+  }
 }
 
 // Export singleton instance

@@ -11,6 +11,7 @@ interface ActivityListProps {
   logs: ActivityLog[]; // Original log data for IDs
   isLoading?: boolean;
   emptyMessage?: string;
+  onDetailClick?: (log: ActivityLog) => void;
 }
 
 export function ActivityList({
@@ -18,6 +19,7 @@ export function ActivityList({
   logs: logsProp,
   isLoading = false,
   emptyMessage = '선택한 필터 조건에 맞는 활동이 없습니다.',
+  onDetailClick,
 }: ActivityListProps) {
   // activities가 undefined일 수 있으므로 안전하게 처리
   const activities = activitiesProp || [];
@@ -99,6 +101,7 @@ export function ActivityList({
             index={index}
             onItemClick={handleItemClick}
             onCheckboxChange={(checked) => handleCheckboxChange(logId, checked, index)}
+            onDetailClick={onDetailClick ? () => onDetailClick(logs[index]) : undefined}
           />
         );
       })}
