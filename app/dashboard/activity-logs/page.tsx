@@ -12,25 +12,33 @@ import { Button } from '@/components/ui/button';
 import { Download, Archive, Trash2, RefreshCw } from 'lucide-react';
 import { activityLogsApi } from '@/lib/api/activity-logs';
 import { useToastStore } from '@/lib/store/toastStore';
+import { useActivityLogsUIStore } from '@/lib/store/activityLogsUIStore';
+import { useActivityLogsSelectionStore } from '@/lib/store/activityLogsSelectionStore';
 import { formatActivityLogs } from '@/lib/utils/activity-formatter';
+import { ActivityLog } from '@/lib/api/activity-logs';
 
 export default function ActivityLogsPage() {
   useRoutePermission('activity_logs:read', '/dashboard');
   const { hasPermission } = usePermissions();
   const { showSuccess, showError, showInfo } = useToastStore();
 
-  const [filters, setFilters] = useState({
-    category: undefined as string | undefined,
-    level: undefined as string | undefined,
-    status: undefined as string | undefined,
-    startDate: undefined as string | undefined,
-    endDate: undefined as string | undefined,
-    limit: 50,
-    page: 1,
-  });
+  // UI State Management
+  const {
+    filters,
+    sortOrder,
+    startDate: storedStartDate,
+    endDate: storedEndDate,
+    setFilters,
+    updateFilter,
+    setSortOrder,
+    setDateRange,
+  } = useActivityLogsUIStore();
 
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [logs, setLogs] = useState<any[]>([]);
+  // Selection Management
+  const selectedCount = useActivityLogsSelectionStore((state) => state.getSelectedCount());
+  const clearSelection = useActivityLogsSelectionStore((state) => state.clearSelection);
+
+  const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 50,
@@ -38,12 +46,15 @@ export default function ActivityLogsPage() {
     totalPages: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [startDate, setStartDate] = useState<Date | undefined>(
-    filters.startDate ? new Date(filters.startDate) : undefined
-  );
-  const [endDate, setEndDate] = useState<Date | undefined>(
-    filters.endDate ? new Date(filters.endDate) : undefined
-  );
+
+  // Convert stored date strings to Date objects
+  const startDate = useMemo(() => {
+    return storedStartDate ? new Date(storedStartDate) : undefined;
+  }, [storedStartDate]);
+
+  const endDate = useMemo(() => {
+    return storedEndDate ? new Date(storedEndDate) : undefined;
+  }, [storedEndDate]);
 
   // Format logs for display
   const formattedActivities = useMemo(() => {
@@ -68,26 +79,6 @@ export default function ActivityLogsPage() {
       setIsLoading(false);
     }
   };
-
-  // Sync date state with filters
-  useEffect(() => {
-    if (filters.startDate) {
-      const date = new Date(filters.startDate);
-      if (!startDate || date.getTime() !== startDate.getTime()) {
-        setStartDate(date);
-      }
-    } else {
-      setStartDate(undefined);
-    }
-    if (filters.endDate) {
-      const date = new Date(filters.endDate);
-      if (!endDate || date.getTime() !== endDate.getTime()) {
-        setEndDate(date);
-      }
-    } else {
-      setEndDate(undefined);
-    }
-  }, [filters.startDate, filters.endDate]);
 
   useEffect(() => {
     loadLogs();
@@ -195,25 +186,41 @@ export default function ActivityLogsPage() {
 
       <div className="bg-white rounded-lg shadow p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">로그 필터</h2>
+          <div className="flex items-center gap-4">
+            <h2 className="text-lg font-semibold">로그 필터</h2>
+            {selectedCount > 0 && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                <span>{selectedCount}개 선택됨</span>
+                <button
+                  onClick={clearSelection}
+                  className="ml-2 text-blue-600 hover:text-blue-800 font-semibold"
+                  title="선택 해제"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+          </div>
           <SortButton sortOrder={sortOrder} onSortChange={setSortOrder} />
         </div>
 
         <ActivityLogsFiltersV2
           filters={filters}
-          onFiltersChange={setFilters}
-          onLimitChange={(limit) => setFilters({ ...filters, limit, page: 1 })}
-          onDateRangeChange={(start, end) => {
-            setStartDate(start);
-            setEndDate(end);
+          onFiltersChange={(newFilters) => {
+            // Reset to page 1 when filters change (except page changes)
             setFilters({
-              ...filters,
-              startDate: start?.toISOString(),
-              endDate: end?.toISOString(),
-              page: 1,
+              ...newFilters,
+              page: newFilters.page || 1,
             });
           }}
-          limit={filters.limit}
+          onLimitChange={(limit) => {
+            updateFilter('limit', limit);
+            updateFilter('page', 1);
+          }}
+          onDateRangeChange={(start, end) => {
+            setDateRange(start, end);
+          }}
+          limit={filters.limit || 50}
           startDate={startDate}
           endDate={endDate}
         />
@@ -221,6 +228,7 @@ export default function ActivityLogsPage() {
         <div className="mt-6">
           <ActivityList
             activities={formattedActivities}
+            logs={logs}
             isLoading={isLoading}
             emptyMessage="선택한 필터 조건에 맞는 활동이 없습니다."
           />
@@ -231,7 +239,7 @@ export default function ActivityLogsPage() {
             <ActivityLogsPagination
               currentPage={pagination.page}
               totalPages={pagination.totalPages}
-              onPageChange={(page) => setFilters({ ...filters, page })}
+              onPageChange={(page) => updateFilter('page', page)}
             />
           </div>
         )}

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Filter, Calendar, List, ChevronDown, ChevronUp } from 'lucide-react';
 import { ActivityLogFilters } from '@/lib/api/activity-logs';
 import { Badge } from '@/components/ui/badge';
+import { useActivityLogsUIStore } from '@/lib/store/activityLogsUIStore';
 
 interface ActivityLogsFiltersV2Props {
   filters: ActivityLogFilters;
@@ -51,7 +52,21 @@ export function ActivityLogsFiltersV2({
   startDate,
   endDate,
 }: ActivityLogsFiltersV2Props) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  // Use UI store for expanded state persistence
+  const { isFiltersExpanded, setFiltersExpanded } = useActivityLogsUIStore();
+  const [isExpanded, setIsExpanded] = useState(isFiltersExpanded);
+  
+  // Sync local state with store
+  useEffect(() => {
+    setIsExpanded(isFiltersExpanded);
+  }, [isFiltersExpanded]);
+
+  // Update store when expanded state changes
+  const handleToggleExpanded = () => {
+    const newExpanded = !isExpanded;
+    setIsExpanded(newExpanded);
+    setFiltersExpanded(newExpanded);
+  };
   
   // filters가 undefined일 수 있으므로 안전하게 처리
   const filters = filtersProp || {};
@@ -126,8 +141,8 @@ export function ActivityLogsFiltersV2({
       {/* Header with Active Filters Count */}
       <div className="flex items-center justify-between">
         <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+          onClick={handleToggleExpanded}
+          className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors hover:shadow-none focus:shadow-none active:shadow-none hover:translate-y-0 hover:not-disabled:translate-y-0"
         >
           <Filter className="h-4 w-4" />
           <span>필터</span>

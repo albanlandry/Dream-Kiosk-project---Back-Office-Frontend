@@ -3,20 +3,72 @@
 import { Loader2 } from 'lucide-react';
 import { FormattedActivity } from '@/lib/utils/activity-formatter';
 import { ActivityItem } from './ActivityItem';
+import { useActivityLogsSelectionStore } from '@/lib/store/activityLogsSelectionStore';
+import { ActivityLog } from '@/lib/api/activity-logs';
 
 interface ActivityListProps {
   activities: FormattedActivity[];
+  logs: ActivityLog[]; // Original log data for IDs
   isLoading?: boolean;
   emptyMessage?: string;
 }
 
 export function ActivityList({
   activities: activitiesProp,
+  logs: logsProp,
   isLoading = false,
   emptyMessage = '선택한 필터 조건에 맞는 활동이 없습니다.',
 }: ActivityListProps) {
   // activities가 undefined일 수 있으므로 안전하게 처리
   const activities = activitiesProp || [];
+  const logs = logsProp || [];
+
+  const {
+    toggleSelection,
+    selectItem,
+    deselectItem,
+    selectRange,
+    lastClickedIndex,
+    isSelected,
+  } = useActivityLogsSelectionStore();
+
+  const handleItemClick = (index: number, event: React.MouseEvent) => {
+    const logId = logs[index]?.id;
+    if (!logId) return;
+
+    const isCtrlOrCmd = event.ctrlKey || event.metaKey;
+    const isShift = event.shiftKey;
+
+    if (isShift && lastClickedIndex !== null) {
+      // Range selection
+      selectRange(lastClickedIndex, index, logs.map((log) => log.id));
+    } else if (isCtrlOrCmd) {
+      // Toggle selection
+      toggleSelection(logId);
+      useActivityLogsSelectionStore.setState({ lastClickedIndex: index });
+    } else {
+      // Single selection (clear others)
+      if (isSelected(logId)) {
+        deselectItem(logId);
+      } else {
+        // Clear all and select this one
+        useActivityLogsSelectionStore.getState().deselectAll();
+        selectItem(logId);
+      }
+      useActivityLogsSelectionStore.setState({ lastClickedIndex: index });
+    }
+  };
+
+  const handleCheckboxChange = (logId: string, checked: boolean, index: number) => {
+    // Checkbox click automatically enables multi-selection mode
+    if (checked) {
+      selectItem(logId);
+    } else {
+      deselectItem(logId);
+    }
+    // Update last clicked index for range selection
+    useActivityLogsSelectionStore.setState({ lastClickedIndex: index });
+  };
 
   if (isLoading) {
     return (
@@ -37,9 +89,19 @@ export function ActivityList({
 
   return (
     <div className="space-y-4">
-      {activities.map((activity) => (
-        <ActivityItem key={activity.id || `activity-${activity.title}-${activity.time}`} activity={activity} />
-      ))}
+      {activities.map((activity, index) => {
+        const logId = logs[index]?.id || activity.id || `activity-${index}`;
+        return (
+          <ActivityItem
+            key={logId}
+            activity={activity}
+            logId={logId}
+            index={index}
+            onItemClick={handleItemClick}
+            onCheckboxChange={(checked) => handleCheckboxChange(logId, checked, index)}
+          />
+        );
+      })}
     </div>
   );
 }
