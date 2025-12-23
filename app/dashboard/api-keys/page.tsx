@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/button';
@@ -22,16 +22,9 @@ export default function ApiKeysPage() {
   const [total, setTotal] = useState(0);
 
   const isSuperadmin = admin?.roles?.includes('super_admin') || admin?.roles?.includes('superadmin');
+  const [isCheckingPermission, setIsCheckingPermission] = useState(true);
 
-  useEffect(() => {
-    if (!isSuperadmin) {
-      router.push('/dashboard');
-      return;
-    }
-    loadApiKeys();
-  }, [page, statusFilter, searchTerm, isSuperadmin]);
-
-  const loadApiKeys = async () => {
+  const loadApiKeys = useCallback(async () => {
     try {
       setLoading(true);
       const response = await apiKeysApi.list({
@@ -51,7 +44,30 @@ export default function ApiKeysPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, statusFilter, searchTerm]);
+
+  // Check permission after admin data is loaded
+  useEffect(() => {
+    // Wait for admin data to be available
+    if (!admin) {
+      setIsCheckingPermission(true);
+      return;
+    }
+
+    setIsCheckingPermission(false);
+
+    // Only redirect if we're sure the user is not a superadmin
+    // Don't redirect if admin data is still loading
+    if (admin && !isSuperadmin) {
+      router.push('/dashboard');
+      return;
+    }
+
+    // Load API keys if user is superadmin
+    if (isSuperadmin) {
+      loadApiKeys();
+    }
+  }, [admin, isSuperadmin, router, loadApiKeys]);
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this API key?')) return;
@@ -114,6 +130,22 @@ export default function ApiKeysPage() {
     }
   };
 
+  // Show loading state while checking permissions
+  if (isCheckingPermission || !admin) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header
+          title="API 키 관리"
+          description="API 키를 생성, 관리하고 권한을 설정할 수 있습니다."
+        />
+        <div className="p-6">
+          <div className="p-8 text-center">로딩 중...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render content if user is not superadmin
   if (!isSuperadmin) {
     return null;
   }

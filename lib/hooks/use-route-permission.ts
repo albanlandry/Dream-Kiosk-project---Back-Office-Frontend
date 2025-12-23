@@ -19,7 +19,7 @@ export function useRoutePermission(
     // Reset redirect flag when permission or route changes
     hasRedirected.current = false;
 
-    // Don't check if still loading permissions
+    // Don't check if still loading permissions - this prevents redirects on refresh
     if (isLoading) {
       return;
     }
@@ -34,7 +34,7 @@ export function useRoutePermission(
       return;
     }
 
-    // If permissions array is empty and we're authenticated, give it a moment
+    // If permissions array is empty and we're authenticated, wait for permissions to load
     // This handles race conditions on page refresh
     if (permissions.length === 0 && isAuthenticated) {
       // Clear any existing timeout
@@ -42,15 +42,17 @@ export function useRoutePermission(
         clearTimeout(checkTimeoutRef.current);
       }
 
-      // Wait a bit for permissions to load (handles refresh scenario)
+      // Wait longer for permissions to load on refresh (handles slow network)
       checkTimeoutRef.current = setTimeout(() => {
         // Check again after delay
-        // If still no permissions, don't redirect - user might be admin
+        // If still no permissions after waiting, don't redirect - user might be admin
         // Admin users should have permissions, but if API call failed,
-        // we shouldn't redirect them away
+        // we shouldn't redirect them away from the page they're already on
         if (permissions.length === 0) {
           // Don't redirect if permissions failed to load
           // This prevents false redirects on refresh
+          // The user is already on the page, so we assume they have access
+          // until permissions are actually loaded and checked
           return;
         }
 
@@ -63,7 +65,7 @@ export function useRoutePermission(
           hasRedirected.current = true;
           router.push(redirectTo);
         }
-      }, 500); // Wait 500ms for permissions to load
+      }, 1000); // Wait 1 second for permissions to load (increased from 500ms)
 
       return () => {
         if (checkTimeoutRef.current) {

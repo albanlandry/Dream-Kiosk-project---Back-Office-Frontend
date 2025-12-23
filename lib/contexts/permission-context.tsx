@@ -48,15 +48,17 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
         console.error('Failed to load permissions:', error);
         // Only set empty if we've never loaded before
         if (!hasLoadedOnce) {
-          // If admin user, assume they have all permissions temporarily
+          // If admin or superadmin user, assume they have all permissions temporarily
           // This prevents redirect on refresh before permissions load
-          if (admin?.role === 'admin') {
+          if (admin?.role === 'admin' || admin?.roles?.includes('super_admin') || admin?.roles?.includes('superadmin')) {
             setPermissions(['*:*']); // Temporary admin permission
+            setHasLoadedOnce(true); // Mark as loaded to prevent repeated API calls
           } else {
             setPermissions([]);
           }
         }
-        // Keep hasLoadedOnce as true to preserve state
+        // Keep hasLoadedOnce as true to preserve state if we had permissions before
+        // This prevents clearing permissions on refresh when network is slow
       }
     } finally {
       setIsLoading(false);
