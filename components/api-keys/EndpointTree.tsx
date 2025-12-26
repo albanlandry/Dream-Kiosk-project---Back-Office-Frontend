@@ -218,10 +218,10 @@ export function EndpointTree({
     loadTree();
   }, []);
 
-  const loadTree = async () => {
+  const loadTree = async (refresh: boolean = false) => {
     try {
       setLoading(true);
-      const treeData = await apiKeysApi.getEndpointTree();
+      const treeData = await apiKeysApi.getEndpointTree(refresh);
       setTree(treeData);
       
       // Auto-expand root
@@ -325,7 +325,12 @@ export function EndpointTree({
     return (
       <div className="p-8 text-center text-gray-500">
         엔드포인트 트리를 불러올 수 없습니다.
-        <Button type="button" onClick={loadTree} className="mt-4" variant="outline">
+        <Button 
+          type="button" 
+          onClick={() => loadTree(false)} 
+          className="mt-4" 
+          variant="outline"
+        >
           다시 시도
         </Button>
       </div>
@@ -351,7 +356,13 @@ export function EndpointTree({
         <Button type="button" variant="outline" size="sm" onClick={handleClearAll}>
           모두 해제
         </Button>
-        <Button type="button" variant="outline" size="sm" onClick={loadTree}>
+        <Button 
+          type="button" 
+          variant="outline" 
+          size="sm" 
+          onClick={() => loadTree(true)}
+          title="캐시를 무시하고 엔드포인트 트리를 새로고침합니다"
+        >
           새로고침
         </Button>
       </div>

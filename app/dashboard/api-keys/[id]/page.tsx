@@ -11,6 +11,10 @@ import { BasicInfoSection } from '@/components/api-keys/BasicInfoSection';
 import { PermissionsSection } from '@/components/api-keys/PermissionsSection';
 import { ArrowLeft, Save, Trash2, Ban, RotateCcw, Copy, Check, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { CreateApiKeyRequest } from '@/lib/api/api-keys';
+import { useErrorHandler } from '@/lib/hooks/useErrorHandler';
+import { ErrorDialog } from '@/components/ui/ErrorDialog';
+import { messages } from '@/lib/config/messages';
+import { useToastStore } from '@/lib/store/toastStore';
 
 export default function ApiKeyDetailPage() {
   const router = useRouter();
@@ -35,6 +39,8 @@ export default function ApiKeyDetailPage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [showKeyHash, setShowKeyHash] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const { handleError, errorDialog, closeErrorDialog } = useErrorHandler({ showDialog: true });
+  const { showSuccess, showError } = useToastStore();
 
   const isSuperadmin = admin?.roles?.includes('super_admin') || admin?.roles?.includes('superadmin');
 
@@ -79,7 +85,7 @@ export default function ApiKeyDetailPage() {
       setSelectedMethods(methods);
     } catch (error) {
       console.error('Failed to load API key:', error);
-      alert('API 키를 불러올 수 없습니다.');
+      handleError(error, 'API 키를 불러오는데 실패했습니다.');
       router.push('/dashboard/api-keys');
     } finally {
       setLoading(false);
@@ -148,10 +154,11 @@ export default function ApiKeyDetailPage() {
       };
 
       await apiKeysApi.update(id, updateData);
-      alert('API 키가 성공적으로 업데이트되었습니다.');
+      showSuccess(messages.apiKeys.update.success);
       loadApiKey(); // Reload to get updated data
     } catch (error: any) {
       console.error('Failed to update API key:', error);
+      handleError(error, messages.apiKeys.update.failed);
       if (error.response?.data?.message) {
         const backendError = error.response.data.message;
         if (Array.isArray(backendError)) {
@@ -166,7 +173,7 @@ export default function ApiKeyDetailPage() {
           setErrors({ submit: backendError });
         }
       } else {
-        setErrors({ submit: 'API 키 업데이트에 실패했습니다. 다시 시도해주세요.' });
+        setErrors({ submit: messages.apiKeys.update.failed });
       }
     } finally {
       setSaving(false);
@@ -181,10 +188,10 @@ export default function ApiKeyDetailPage() {
     try {
       setActionLoading('revoke');
       await apiKeysApi.revoke(id, reason);
-      alert('API 키가 취소되었습니다.');
+      showSuccess(messages.apiKeys.revoke.success);
       loadApiKey();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'API 키 취소에 실패했습니다.');
+      handleError(error, messages.apiKeys.revoke.failed);
     } finally {
       setActionLoading(null);
     }
@@ -198,10 +205,10 @@ export default function ApiKeyDetailPage() {
     try {
       setActionLoading('blacklist');
       await apiKeysApi.blacklist(id, reason);
-      alert('API 키가 블랙리스트에 추가되었습니다.');
+      showSuccess(messages.apiKeys.blacklist.success);
       loadApiKey();
     } catch (error: any) {
-      alert(error.response?.data?.message || '블랙리스트 추가에 실패했습니다.');
+      handleError(error, messages.apiKeys.blacklist.failed);
     } finally {
       setActionLoading(null);
     }
@@ -216,10 +223,10 @@ export default function ApiKeyDetailPage() {
     try {
       setActionLoading('delete');
       await apiKeysApi.delete(id);
-      alert('API 키가 삭제되었습니다.');
+      showSuccess(messages.apiKeys.delete.success);
       router.push('/dashboard/api-keys');
     } catch (error: any) {
-      alert(error.response?.data?.message || 'API 키 삭제에 실패했습니다.');
+      handleError(error, messages.apiKeys.delete.failed);
       setActionLoading(null);
     }
   };
@@ -241,7 +248,7 @@ export default function ApiKeyDetailPage() {
       }
       router.push('/dashboard/api-keys');
     } catch (error: any) {
-      alert(error.response?.data?.message || 'API 키 회전에 실패했습니다.');
+      handleError(error, 'API 키 회전에 실패했습니다.');
       setActionLoading(null);
     }
   };
@@ -490,6 +497,14 @@ export default function ApiKeyDetailPage() {
           </div>
         </div>
       </div>
+      
+      {/* Error Dialog */}
+      <ErrorDialog
+        open={errorDialog.open}
+        title={errorDialog.title}
+        message={errorDialog.message}
+        onClose={closeErrorDialog}
+      />
     </div>
   );
 }
